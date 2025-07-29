@@ -10,9 +10,25 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef FT_IRC_HPP
-# define FT_IRC_HPP
+#ifndef IRC_HPP
+# define IRC_HPP
 
 # include <iostream>
+# include <vector>
+# include <ctime>
 
+# include "Client.hpp"
+# include "Input.hpp"
+# include "Channel.hpp"
+
+namespace Irc{
+    std::vector<Client>     clients;
+    std::vector<Channel>    channels;
+    Input                   input;
+    std::string             network_name;
+    std::string             version;
+    double                  time;
+
+    std::string    getDateTime();
+}
 # endif

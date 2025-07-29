@@ -10,12 +10,15 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/ft_irc.hpp"
+#include "../includes/Irc.hpp"
 
 int main(int ac, char **av){
     if (ac != 3)
         std::cerr << "Invalid number of arguments!" << std::endl 
     << "Please insert: <executable name> <listening port> <password>" << std::endl;
+    
+    Irc::channels;
+
 }
 
 
