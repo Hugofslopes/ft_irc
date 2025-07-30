@@ -9,14 +9,15 @@
 class Input{
     public:
         Input(std::string);
+        Input& operator=(const Input&);
         ~Input();
+        Input();
 
         std::string getCommand() const;
 
     private:
-        Input();
         Input(const Input&);
-        Input& operator=(const Input&);
+        
 
         std::string                 _command;
         std::string                 _inClient;

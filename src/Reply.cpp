@@ -1,7 +1,7 @@
 #include "../includes/Client.hpp"
 #include "../includes/Channel.hpp"
 #include "../includes/Reply.hpp"
-#include "../includes/Irc.hpp"
+#include "../includes/Server.hpp"
 
 
 namespace REPLY{
@@ -20,19 +20,19 @@ namespace REPLY{
         << ' ' << ch.getName() << std::endl;
     }
 
-    void RPL_WELCOME(const Client& client){
-        std::cerr << client.getClient() << " :Welcome to the " << Irc::network_name 
+    void RPL_WELCOME(const Client& client, const Server& server){
+        std::cerr << client.getClient() << " :Welcome to the " << server.getName()
         << " Network, " << client.getNick() << std::endl;
     }
 
-    void RPL_YOURHOST(const Client& client){
-        std::cerr << client.getClient() << " :Your host is " << Irc::network_name 
-        << ", running version " << Irc::version << std::endl;
+    void RPL_YOURHOST(const Client& client, const Server& server){
+        std::cerr << client.getClient() << " :Your host is " << server.getName()
+        << ", running version " << server.getVersion() << std::endl;
     }
 
-    void RPL_CREATED(const Client& client){
+    void RPL_CREATED(const Client& client, const Server& server){
         std::cerr << client.getClient() << " :This server was created " << 
-        Irc::getDateTime() << std::endl;
+        server.getStTime() << std::endl;
     }
 
 }

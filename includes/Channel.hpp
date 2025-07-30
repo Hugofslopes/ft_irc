@@ -5,8 +5,11 @@
 
 class Channel{
     public:
+        Channel();
         Channel(std::string);
         ~Channel();
+        Channel(const Channel&);
+        Channel& operator=(const Channel&);
 
         bool        getKey() const;
         bool        getInvite() const;
@@ -14,10 +17,7 @@ class Channel{
         std::string getTopic() const;
 
     private:
-        Channel();
-        Channel(const Channel&);
-        Channel& operator=(const Channel&);
-
+        
         std::string _name;
         std::string _topic;
         bool        _key;

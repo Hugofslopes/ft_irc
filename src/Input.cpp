@@ -1,7 +1,6 @@
 #include "../includes/Input.hpp"
 
 Input::Input(std::string str){
-
     if (str[0] == ':'){
         str.erase(0, 1);
         std::stringstream ss(str);
@@ -11,6 +10,8 @@ Input::Input(std::string str){
     else {
         std::stringstream ss(str);
         std::getline(ss, _command, ' ');
+        std::getline(ss, str, ' ');
+        _args.push_back(str);
     }
 }
 

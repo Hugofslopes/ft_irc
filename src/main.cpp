@@ -1,27 +1,36 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: hfilipe- <hfilipe-@student.42porto.com>    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/06/26 14:56:19 by hfilipe-          #+#    #+#             */
-/*   Updated: 2025/07/07 21:48:24 by hfilipe-         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
+#include "../includes/Server.hpp"
 
-#include "../includes/Irc.hpp"
 
 int main(int ac, char **av){
-    if (ac != 3)
-        std::cerr << "Invalid number of arguments!" << std::endl 
-    << "Please insert: <executable name> <listening port> <password>" << std::endl;
-    
-    Irc::channels;
+  if (ac != 3){
+      std::cerr << "Invalid number of arguments!" << std::endl 
+  << "Please insert: <executable name> <listening port> <password>" << std::endl;
+      std::exit(1);
+  }
 
+  std::string port = av[1];
+  std::string password = av[2];
+  Server	srv(port, password);
+	try
+	{
+    srv.start();
+		srv.run();
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
 }
 
+//htons() - convert Port numbers
 
+//htonl() - convert ip adress
+/*  uint16_t port = 8080;
+    uint32_t ip = 0xC0A80001; // 192.168.0.1
+    uint16_t net_port = htons(port);
+    uint32_t net_ip = htonl(ip); */
+
+    
 /* nc - C <ip> (pode usar hostanem, on terminal) <porta>
 
 c1r3e6
