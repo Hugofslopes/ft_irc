@@ -1,19 +1,24 @@
 #include "../includes/Server.hpp"
 #include "../includes/Input.hpp"
 
+Server* Server::instance = NULL;
 //<<<<<<<<<<<<<<<<<<<<<<CONSTRUCTORS>>>>>>>>>>>>>>>>>>>>>>>>
 Server::Server(std::string port, std::string password){
     _network_name = "ft_irc";
     _version = "1.0";
     parsePort(port);
     _password = password;
-    _nbClients = 0;
+    _nbClients = 0; 
     _socketfd = 0;
+    memset(_fds, 0, sizeof(_fds));
+    Server::instance = this;
 }
 
 Server::Server(){}
 
-Server::~Server(){}
+Server::~Server(){
+    closeExit();
+}
 
 Server::Server(const Server& other){
     _network_name = other._network_name;
@@ -63,12 +68,13 @@ void Server::start()
     if (setsockopt(_socketfd, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(off)) < 0)
         throw std::runtime_error("Failed to set socket options");
 
-    sockaddr_in6 server_addr;
-    server_addr.sin6_family = AF_INET6;
-    server_addr.sin6_port = htons(_port);
-    server_addr.sin6_addr = in6addr_any;
+    sockaddr_in6 serverAddr;
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin6_family = AF_INET6;
+    serverAddr.sin6_port = htons(_port);
+    serverAddr.sin6_addr = in6addr_any;
 
-    if (bind(_socketfd, (sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    if (bind(_socketfd, (sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
         throw std::runtime_error("Bind failed");
 
     if (listen(_socketfd, 5) < 0)
@@ -80,8 +86,13 @@ void Server::start()
 }
 
 void Server::run(){
+    struct sigaction sa;
+    sa.sa_handler = handleSigint;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
     setDateTime();
-    signal_ignore();
+    signalIgnore();
     while (1)
     {
         if (poll(_fds, _nbClients, -1) == -1)
@@ -128,19 +139,21 @@ void    Server::clientRequest(int index){
     memset(buffer, 0, sizeof(buffer));
 
     int bytesRead = recv(_fds[index].fd, buffer, sizeof(buffer) - 1, 0);
+      std::cout << "BYTES!!" << bytesRead << std::endl;
     if (bytesRead <= 0) {
         close(_fds[index].fd);
+        _fds[index].fd = -1;
         std::cout << "Client disconnected\n";
         return;
     }
 
     std::string message(buffer, bytesRead);
-    Input in(message);
-    _input = in;
+
+    _input = Input(message);
     executeCommand();
     
-    std::string reply = "Message received\r\n";
-    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+   /*  std::string reply = "Message received\r\n";
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0); */
 }
 
 void Server::executeCommand(){
@@ -187,8 +200,30 @@ void Server::setDateTime(){
     _StartTime = timeStr;
 }
 
-void signal_ignore() {
+void signalIgnore(){
     signal(SIGQUIT, SIG_IGN);
+}
+
+void    Server::closeExit(){
+    _clients.clear();
+    std::vector<Client>().swap(_clients);
+
+    _channels.clear();
+    std::vector<Channel>().swap(_channels);
+
+    if (_socketfd != -1)
+    close(_socketfd);
+
+    for (int i = 0; i <= _nbClients; ++i)
+    if (_fds[i].fd != -1)
+        close(_fds[i].fd);
+}
+
+void handleSigint(int sig){
+    (void)sig;
+    if (Server::instance)
+        Server::instance->closeExit();  
+    exit(0);
 }
 
 void Server::parsePort(std::string port){

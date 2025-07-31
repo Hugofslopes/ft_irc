@@ -43,6 +43,9 @@ class Server{
         void    handlePrivmsg();
         void    handleUser();
         
+        static Server*          instance;
+        void        closeExit();
+        
         
     private:
         Server();
@@ -60,11 +63,15 @@ class Server{
         int                     _nbClients;
         struct pollfd			_fds[1024];
         int                     _socketfd;
+        
 
-        void    setDateTime();
-        void    parsePort(std::string);
+
+        void        setDateTime();
+        void        parsePort(std::string);
+        
 };
+extern Server* instance;
 
-void signal_ignore();
-
+void signalIgnore();
+void handleSigint(int);
 # endif

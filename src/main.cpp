@@ -1,6 +1,5 @@
 #include "../includes/Server.hpp"
 
-
 int main(int ac, char **av){
   if (ac != 3){
       std::cerr << "Invalid number of arguments!" << std::endl 
