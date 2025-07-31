@@ -1,7 +1,8 @@
 #include "../includes/Client.hpp"
 
-
 Client::Client(){
+    client = "default";
+    nick = "default";
 }
 
 Client::~Client(){

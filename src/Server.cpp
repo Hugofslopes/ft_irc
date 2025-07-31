@@ -131,6 +131,7 @@ void    Server::newClient(){
     _fds[_nbClients].events = POLLIN;
     _nbClients++;
     Client client;
+    //Client client(_nbClients);
     _clients.push_back(client);
 }
 
@@ -148,12 +149,12 @@ void    Server::clientRequest(int index){
     }
 
     std::string message(buffer, bytesRead);
-
     _input = Input(message);
-    executeCommand();
-    
-   /*  std::string reply = "Message received\r\n";
-    send(_fds[index].fd, reply.c_str(), reply.length(), 0); */
+
+    /* if (!(_clients[index].getLogin()))
+        process_login();
+    else
+        executeCommand(); */
 }
 
 void Server::executeCommand(){
@@ -188,7 +189,19 @@ void Server::executeCommand(){
     std::cerr << "Command not found" << std::endl;
 }
 
+ void    Server::process_login(){}
+
 //<<<<<<<<<<<<<<<<<<<<<<UTILS>>>>>>>>>>>>>>>>>>>>>>>>
+void Server::joinGreetings(int index)
+{
+    std::string reply = Reply::RPL_WELCOME(_clients[index - 1], *this);
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+    reply =  Reply::RPL_YOURHOST(_clients[index - 1], *this);
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+    reply =  Reply::RPL_CREATED(_clients[index - 1], *this);
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+}
+
 void Server::setDateTime(){
     time_t now = time(0);
     struct tm* local = localtime(&now);

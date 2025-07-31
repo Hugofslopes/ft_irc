@@ -16,6 +16,7 @@
 # include "Client.hpp"
 # include "Input.hpp"
 # include "Channel.hpp"
+# include "Reply.hpp"
 
 class Server{
     public:
@@ -31,6 +32,7 @@ class Server{
         void    newClient();	
 	    void    clientRequest(int);
         void    executeCommand();
+        void    process_login();
 
         void    handleInvite();
         void    handleJoin();
@@ -64,11 +66,9 @@ class Server{
         struct pollfd			_fds[1024];
         int                     _socketfd;
         
-
-
         void        setDateTime();
         void        parsePort(std::string);
-        
+        void        joinGreetings(int);  
 };
 extern Server* instance;
 

@@ -1,38 +1,79 @@
 #include "../includes/Client.hpp"
-#include "../includes/Channel.hpp"
 #include "../includes/Reply.hpp"
 #include "../includes/Server.hpp"
 
 
-namespace REPLY{
-    void RPL_NOTOPIC(const Client& client, const Channel& ch){
-        std::cerr << client.getClient() << ' ' << ch.getName() 
-        << " :No topic is set" << std::endl;
+namespace Reply{
+    std::string RPL_NOTOPIC(const Client& client, const Channel& ch){
+        std::string str;
+
+        str += client.getClient();
+        str += ' ';
+        str += ch.getName();
+        str += " :No topic is set\r\n";
+
+        return str;
     }
 
-    void RPL_TOPIC(const Client& client, const Channel& ch){
-        std::cerr << client.getClient() << ' ' << ch.getName() 
-        << " :" << ch.getTopic() << std::endl;
+    std::string RPL_TOPIC(const Client& client, const Channel& ch){
+        std::string str;
+
+        str += client.getClient();
+        str += ' ';
+        str += ch.getName();
+        str += " :";
+        str += ch.getTopic();
+        str += "\r\n";
+
+        return str;
     }
 
-    void RPL_INVITING(const Client& client, const Channel& ch){
-        std::cerr << client.getClient() << ' ' << client.getNick() 
-        << ' ' << ch.getName() << std::endl;
+    std::string RPL_INVITING(const Client& client, const Channel& ch){
+        std::string str;
+
+        str += client.getClient();
+        str += ' ';
+        str += client.getNick() ;
+        str += ' ';
+        str += ch.getName();
+        str += "\r\n";
+
+        return str;
     }
 
-    void RPL_WELCOME(const Client& client, const Server& server){
-        std::cerr << client.getClient() << " :Welcome to the " << server.getName()
-        << " Network, " << client.getNick() << std::endl;
+    std::string RPL_WELCOME(const Client& client, const Server& server){
+        std::string str = client.getClient();
+
+        str += " :Welcome to the ";
+        str += server.getName();
+        str += " Network, ";
+        str += client.getNick() ;
+        str += "\r\n";
+
+        return str;
     }
 
-    void RPL_YOURHOST(const Client& client, const Server& server){
-        std::cerr << client.getClient() << " :Your host is " << server.getName()
-        << ", running version " << server.getVersion() << std::endl;
+    std::string RPL_YOURHOST(const Client& client, const Server& server){
+        std::string str;
+
+        str += client.getClient();
+        str += " :Your host is ";
+        str += server.getName();
+        str += ", running version ";
+        str += server.getVersion();
+        str += "\r\n";
+
+        return str;
     }
 
-    void RPL_CREATED(const Client& client, const Server& server){
-        std::cerr << client.getClient() << " :This server was created " << 
-        server.getStTime() << std::endl;
+    std::string RPL_CREATED(const Client& client, const Server& server){
+        std::string str;
+
+        str += client.getClient();
+        str += " :This server was created ";
+        str += server.getStTime();
+        str += "\r\n";
+        return str;
     }
 
 }
