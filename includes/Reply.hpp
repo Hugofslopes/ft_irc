@@ -1,5 +1,5 @@
 #ifndef REPLY_HPP
-#define REPLY_HPP
+# define REPLY_HPP
 
 # include "Client.hpp"
 # include "Server.hpp"

@@ -10,13 +10,14 @@
 # include <netinet/in.h>
 # include <sys/socket.h>
 # include <fcntl.h>
-#include <cstring>
+# include <cstring>
 
 
 # include "Client.hpp"
 # include "Input.hpp"
 # include "Channel.hpp"
 # include "Reply.hpp"
+# include "Errors.hpp"
 
 class Server{
     public:
@@ -27,27 +28,26 @@ class Server{
         std::string getVersion() const;
         std::string getStTime() const;
 
-        void    start();
-        void    run();
-        void    newClient();	
-	    void    clientRequest(int);
-        void    executeCommand();
-        void    process_login();
+        void        start();
+        void        run();
+        void        newClient();	
+        void        clientRequest(int);
+        void        executeCommand();
+        void        process_login();
 
-        void    handleInvite();
-        void    handleJoin();
-        void    handleKick();
-        void    handleMode();
-        void    handleNick();
-        void    handlePart();
-        void    handlePass();
-        void    handleTopic();
-        void    handlePrivmsg();
-        void    handleUser();
+        void        handleInvite();
+        void        handleJoin();
+        void        handleKick();
+        void        handleMode();
+        void        handleNick();
+        void        handlePart();
+        void        handlePass();
+        void        handleTopic();
+        void        handlePrivmsg();
+        void        handleUser();
         
         static Server*          instance;
         void        closeExit();
-        
         
     private:
         Server();
