@@ -96,7 +96,7 @@ void Server::run(){
     while (1)
     {
         if (poll(_fds, _nbClients, -1) == -1)
-             std::cerr << "Poll error" << std::endl, exit(1); 
+            std::cerr << "Poll error" << std::endl, exit(1); 
         for (int i = 0; i <= _nbClients; i++)
 		{
 			if (_fds[i].revents & POLLIN)
@@ -131,6 +131,7 @@ void    Server::newClient(){
     _fds[_nbClients].events = POLLIN;
     _nbClients++;
     Client client;
+    //Client client(_nbClients);
     _clients.push_back(client);
 }
 
@@ -139,7 +140,7 @@ void    Server::clientRequest(int index){
     memset(buffer, 0, sizeof(buffer));
 
     int bytesRead = recv(_fds[index].fd, buffer, sizeof(buffer) - 1, 0);
-      std::cout << "BYTES!!" << bytesRead << std::endl;
+    std::cout << "BYTESREAD- " << bytesRead << std::endl;
     if (bytesRead <= 0) {
         close(_fds[index].fd);
         _fds[index].fd = -1;
@@ -148,12 +149,13 @@ void    Server::clientRequest(int index){
     }
 
     std::string message(buffer, bytesRead);
-
+    std::cout << "MESSAGE- " << message << std::endl;
     _input = Input(message);
-    executeCommand();
-    
-   /*  std::string reply = "Message received\r\n";
-    send(_fds[index].fd, reply.c_str(), reply.length(), 0); */
+
+    /* if (!(_clients[index].getLogin()))
+        process_login();
+    else
+        executeCommand(); */
 }
 
 void Server::executeCommand(){
@@ -188,7 +190,19 @@ void Server::executeCommand(){
     std::cerr << "Command not found" << std::endl;
 }
 
+void    Server::process_login(){}
+
 //<<<<<<<<<<<<<<<<<<<<<<UTILS>>>>>>>>>>>>>>>>>>>>>>>>
+void Server::joinGreetings(int index)
+{
+    std::string reply = Reply::RPL_WELCOME(_clients[index - 1], *this);
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+    reply =  Reply::RPL_YOURHOST(_clients[index - 1], *this);
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+    reply =  Reply::RPL_CREATED(_clients[index - 1], *this);
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+}
+
 void Server::setDateTime(){
     time_t now = time(0);
     struct tm* local = localtime(&now);
@@ -236,7 +250,7 @@ void Server::parsePort(std::string port){
     ss >> number;
 
     if (number < 1024 || number > 65535)
-         std::cerr << "Invalid port\n", exit(1);
+        std::cerr << "Invalid port\n", exit(1);
     _port = number;
 }
 
