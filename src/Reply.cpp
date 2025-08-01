@@ -62,4 +62,10 @@ namespace Reply{
         return str;
     }
 
+    std::string RPL_JOIN(const Client& client, const Channel& ch){
+        std::string str = 
+        (":" + client.getNick() + "!user@host JOIN " + ch.getName() + "\r\n");
+        std::cout << str <<std::endl;
+        return str;
+    }
 }

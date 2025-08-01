@@ -149,23 +149,31 @@ void    Server::clientRequest(int index){
     }
 
     std::string message(buffer, bytesRead);
-    std::cout << "MESSAGE- " << message << std::endl;
+    while (!message.empty() &&
+    (message[message.length() - 1] == '\r' || 
+    message[message.length() - 1] == '\n'))
+        message.erase(message.length() - 1, 1);
+
+    message.erase(message.length() - 1, 1);
+    message.erase(message.length() - 1, 1);
+
+    std::cout << "Raw cmd: [" << message << "]" << std::endl;
     _input = Input(message);
 
     /* if (!(_clients[index].getLogin()))
         process_login();
-    else
-        executeCommand(); */
+    else*/
+    executeCommand(index); 
 }
 
-void Server::executeCommand(){
+void Server::executeCommand(int index){
     std::string cmd = _input.getCommand();
     const std::string commands[] = {
         "INVITE", "JOIN", "KICK", "MODE", "NICK", "PART", "PASS", 
         "PRIVMSG", "TOPIC", "USER"
     };
 
-    void (Server::*handlers[])() = {
+    void (Server::*handlers[])(int) = {
     &Server::handleInvite,
     &Server::handleJoin,
     &Server::handleKick,
@@ -179,14 +187,13 @@ void Server::executeCommand(){
     };
 
     const int commandCount = sizeof(commands) / sizeof(commands[0]);
-    std::cout << "Raw cmd: [" << cmd << "]" << std::endl;
     for (int i = 0; i < commandCount; ++i){
         if (commands[i] == cmd) {
-            (this->*handlers[i])();
+            (this->*handlers[i])(index);
             return;
         }
     }
-    
+
     std::cerr << "Command not found" << std::endl;
 }
 
@@ -256,24 +263,40 @@ void Server::parsePort(std::string port){
 
 //<<<<<<<<<<<<<<<<<<<<<<EXECUTE COMMANDS>>>>>>>>>>>>>>>>>>>>>>>>
 
-void    Server::handleInvite(){
+void    Server::handleInvite(int){
     std::cout << "INVITE" << std::endl;
 }
 
-void    Server::handleJoin(){}
+void    Server::handleJoin(int index){
+    std::string  str = "canal";
 
-void    Server::handleKick(){}
+    std::vector<Channel>::iterator it = _channels.begin();
+    for (; it < _channels.end(); it++)
+        if (it->getName() == str){
+            it->addClient(index);
+            return ;
+        }
+    Channel newChannel(str);
+    newChannel.addClient(index);
+    newChannel.addOperator(index);
+    _channels.push_back(newChannel);
 
-void    Server::handleMode(){}
+    std::string reply =  Reply::RPL_JOIN(_clients[index - 1], newChannel);
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+}
 
-void    Server::handleNick(){}
+void    Server::handleKick(int){}
 
-void    Server::handlePart(){}
+void    Server::handleMode(int){}
 
-void    Server::handlePass(){}
+void    Server::handleNick(int){}
 
-void    Server::handleTopic(){}
+void    Server::handlePart(int){}
 
-void    Server::handlePrivmsg(){}
+void    Server::handlePass(int){}
 
-void    Server::handleUser(){}
+void    Server::handleTopic(int){}
+
+void    Server::handlePrivmsg(int){}
+
+void    Server::handleUser(int){}

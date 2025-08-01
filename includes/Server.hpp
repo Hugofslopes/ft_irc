@@ -32,23 +32,23 @@ class Server{
         void        run();
         void        newClient();	
         void        clientRequest(int);
-        void        executeCommand();
+        void        executeCommand(int);
         void        process_login();
 
-        void        handleInvite();
-        void        handleJoin();
-        void        handleKick();
-        void        handleMode();
-        void        handleNick();
-        void        handlePart();
-        void        handlePass();
-        void        handleTopic();
-        void        handlePrivmsg();
-        void        handleUser();
+        void        handleInvite(int);
+        void        handleJoin(int);
+        void        handleKick(int);
+        void        handleMode(int);
+        void        handleNick(int);
+        void        handlePart(int);
+        void        handlePass(int);
+        void        handleTopic(int);
+        void        handlePrivmsg(int);
+        void        handleUser(int);
         
         static Server*          instance;
         void        closeExit();
-        
+
     private:
         Server();
         Server(const Server&);
