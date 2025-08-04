@@ -3,6 +3,7 @@
 
 # include <iostream>
 # include <vector>
+# include <map>
 # include <ctime>
 # include <cstdlib>
 # include <poll.h>
@@ -54,8 +55,8 @@ class Server{
         Server(const Server&);
         Server& operator=(const Server&);
 
-        std::vector<Client>     _clients;
-        std::vector<Channel>    _channels;
+        std::map<std::string, Client>     _clients;
+        std::map<std::string, Channel>    _channels;
         Input                   _input;
         std::string             _network_name;
         std::string             _version;
@@ -65,10 +66,15 @@ class Server{
         int                     _nbClients;
         struct pollfd			_fds[1024];
         int                     _socketfd;
-        
+
         void        setDateTime();
         void        parsePort(std::string);
-        void        joinGreetings(int);  
+        void        joinGreetings(int);
+
+        Client*     findClientByFd(int fd);
+        Client*     findClientByNick(const std::string& nick);
+        Channel*    findChannel(const std::string& name);
+        void        sendMessage(int fd, const std::string& message);
 };
 extern Server* instance;
 

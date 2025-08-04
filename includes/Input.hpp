@@ -14,6 +14,7 @@ class Input{
         Input();
 
         std::string getCommand() const;
+		const std::vector<std::string>&	getArgs() const;
 
     private:
         Input(const Input&);

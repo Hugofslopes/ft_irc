@@ -1,5 +1,8 @@
 #include "../includes/Server.hpp"
 #include "../includes/Input.hpp"
+#include <sstream>
+#include <string>
+#include <sys/socket.h>
 
 Server* Server::instance = NULL;
 //<<<<<<<<<<<<<<<<<<<<<<CONSTRUCTORS>>>>>>>>>>>>>>>>>>>>>>>>
@@ -130,9 +133,13 @@ void    Server::newClient(){
     _fds[_nbClients].fd = clientFd;
     _fds[_nbClients].events = POLLIN;
     _nbClients++;
-    Client client;
+    Client client(clientFd);
+    std::stringstream   ss;
+    ss << "temp_" << clientFd;
+    client.setClient(ss.str());
+    _clients[ss.str()] = client;
     //Client client(_nbClients);
-    _clients.push_back(client);
+    //_clients.push_back(client);
 }
 
 void    Server::clientRequest(int index){
@@ -141,7 +148,31 @@ void    Server::clientRequest(int index){
 
     int bytesRead = recv(_fds[index].fd, buffer, sizeof(buffer) - 1, 0);
     std::cout << "BYTESREAD- " << bytesRead << std::endl;
-    if (bytesRead <= 0) {
+    if (bytesRead <= 0)
+    {
+        Client* client = findClientByFd(_fds[index].fd);
+        if (client)
+        {
+            std::string nick = client->getNickname();
+            const std::vector<std::string>& channels = client->getChannels();
+            for (size_t i = 0; i < channels.size(); ++i)
+            {
+                Channel*    channel = findChannel(channels[i]);
+                if (channel)
+                {
+                    channel->removeMember(nick);
+                    std::string partMsg = ":" + nick + " PART " + channels[i];
+                    const std::vector<std::string>& members = channel->getMembers();
+                    for (size_t j = 0; j < members.size(); ++j)
+                    {
+                        Client* member = findClientByNick(members[j]);
+                        if (member)
+                            sendMessage(member->getFd(), partMsg);
+                    }
+                }
+            }
+            _clients.erase(nick.empty() ? client->getClient() : nick);
+        }
         close(_fds[index].fd);
         _fds[index].fd = -1;
         std::cout << "Client disconnected\n";
@@ -159,11 +190,12 @@ void    Server::clientRequest(int index){
 
     std::cout << "Raw cmd: [" << message << "]" << std::endl;
     _input = Input(message);
+    Client* client = findClientByFd(_fds[index].fd);
 
-    /* if (!(_clients[index].getLogin()))
+    if (client && !client->isRegistered())
         process_login();
-    else*/
-    executeCommand(index); 
+    else
+        executeCommand(index); 
 }
 
 void Server::executeCommand(int index){
@@ -195,9 +227,20 @@ void Server::executeCommand(int index){
     }
 
     std::cerr << "Command not found" << std::endl;
+
+    Client* client = findClientByFd(_fds[_nbClients - 1].fd);
+
+    if (client)
+    {
+        std::string errMsg = ":" + _network_name + " 421 " + client->getNickname() + cmd + " :Unknown command";
+        sendMessage(client->getFd(), errMsg);
+    }
 }
 
-void    Server::process_login(){}
+void    Server::process_login()
+{
+    //TODO: Luigi: trigger joinGreetings when client is registered: PASS, NICK, USER
+}
 
 //<<<<<<<<<<<<<<<<<<<<<<UTILS>>>>>>>>>>>>>>>>>>>>>>>>
 void Server::joinGreetings(int index)
@@ -209,7 +252,7 @@ void Server::joinGreetings(int index)
     reply =  Reply::RPL_CREATED(_clients[index - 1], *this);
     send(_fds[index].fd, reply.c_str(), reply.length(), 0);
 }
-
+ 
 void Server::setDateTime(){
     time_t now = time(0);
     struct tm* local = localtime(&now);
@@ -227,16 +270,14 @@ void signalIgnore(){
 
 void    Server::closeExit(){
     _clients.clear();
-    std::vector<Client>().swap(_clients);
 
     _channels.clear();
-    std::vector<Channel>().swap(_channels);
 
     if (_socketfd != -1)
-    close(_socketfd);
+        close(_socketfd);
 
     for (int i = 0; i <= _nbClients; ++i)
-    if (_fds[i].fd != -1)
+        if (_fds[i].fd != -1)
         close(_fds[i].fd);
 }
 
@@ -261,29 +302,65 @@ void Server::parsePort(std::string port){
     _port = number;
 }
 
-//<<<<<<<<<<<<<<<<<<<<<<EXECUTE COMMANDS>>>>>>>>>>>>>>>>>>>>>>>>
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<HELPER METHODS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-void    Server::handleInvite(int){
-    std::cout << "INVITE" << std::endl;
+Client* Server::findClientByFd(int fd)
+{
+    for (std::map<std::string, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+    {
+        if (it->second.getFd() == fd)
+            return (&(it->second));
+    }
+    return (NULL);
 }
 
-void    Server::handleJoin(int index){
-    std::string  str = "canal";
-
-    std::vector<Channel>::iterator it = _channels.begin();
-    for (; it < _channels.end(); it++)
-        if (it->getName() == str){
-            it->addClient(index);
-            return ;
-        }
-    Channel newChannel(str);
-    newChannel.addClient(index);
-    newChannel.addOperator(index);
-    _channels.push_back(newChannel);
-
-    std::string reply =  Reply::RPL_JOIN(_clients[index - 1], newChannel);
-    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+Client* Server::findClientByNick(const std::string& nick)
+{
+    std::map<std::string, Client>::iterator it = _clients.find(nick);
+    return (it != _clients.end() ? &(it->second) : NULL);
 }
+
+Channel*    Server::findChannel(const std::string& name)
+{
+    std::map<std::string, Channel>::iterator    it = _channels.find(name);
+    return (it != _channels.end() ? &(it->second) : NULL);
+}
+
+void    Server::sendMessage(int fd, const std::string& message)
+{
+    std::string msg = message + "\r\n";
+    send(fd, msg.c_str(), msg.length(), 0);
+}
+
+//<<<<<<<<<<<<<<<<<<<<<<EXECUTE COMMANDS/HANDLERS>>>>>>>>>>>>>>>>>>>>>>>>
+
+void	Server::handleInvite(int)
+{
+	std::cout << "INVITE" << std::endl;
+}
+
+void	Server::handleJoin(int)
+{
+	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+
+	if (!client || !client->isRegistered());
+	//if (args.empty())
+	{
+		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		return ;
+	}
+
+/* 	std::string	channelName = args[0];
+	if (channelName[0] != '#')
+		channelName = "#" + channelName;
+	std::string	key = args.size() > 1 ? args[1] : "";
+
+	Channel*	channel = findChannel(channelName); */
+}
+
+void	Server::handleKick(int){}
+
+void	Server::handleMode(int){}
 
 void    Server::handleKick(int){}
 
@@ -294,9 +371,5 @@ void    Server::handleNick(int){}
 void    Server::handlePart(int){}
 
 void    Server::handlePass(int){}
-
-void    Server::handleTopic(int){}
-
-void    Server::handlePrivmsg(int){}
 
 void    Server::handleUser(int){}
