@@ -181,7 +181,6 @@ void    Server::clientRequest(int index){
 
     std::string message(buffer, bytesRead);
 
-
     while (!message.empty() &&
     (message[message.length() - 1] == '\r' || 
     message[message.length() - 1] == '\n'))
