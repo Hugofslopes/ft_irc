@@ -81,7 +81,7 @@ namespace Errors{
         std::string ERR_NICKNAMEINUSE(const Client& client){
         std::string str = client.getClient();
         str += ' ';
-        str += client.getNick();
+        str += client.getNickname();
         str += " :Nickname is already in use";
         str += "\r\n";
 
@@ -127,7 +127,7 @@ namespace Errors{
     std::string ERR_USERNOTINCHANNEL(const Client& client, const Channel& chn){
         std::string str = client.getClient();
         str += ' ';
-        str += client.getNick();
+        str += client.getNickname();
         str +=  ' ';
         str += chn.getName();
         str += " :They aren't on that channel";
@@ -139,7 +139,7 @@ namespace Errors{
     std::string ERR_USERONCHANNEL(const Client& client, const Channel& chn){
         std::string str = client.getClient();
         str += ' ';
-        str += client.getNick();
+        str += client.getNickname();
         str += ' ';
         str += chn.getName();
         str += " :is already on channel";

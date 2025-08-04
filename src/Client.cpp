@@ -1,15 +1,8 @@
 #include "../includes/Client.hpp"
 
-<<<<<<< HEAD
 Client::Client() : fd(-1), registered(false) {}
 
 Client::Client(int fd) : fd(fd), registered(false) {}
-=======
-Client::Client(){
-    client = "default";
-    nick = "default";
-}
->>>>>>> main
 
 Client::Client(const Client &other) {
     client = other.client;
@@ -73,7 +66,7 @@ void Client::setOperator(const std::string &channel, bool status) {
 }
 
 void Client::addChannel(const std::string &channel) {
-    if (std::find(channel.begin(), channel.end(), channel) == channels.end())
+    if (std::find(channels.begin(), channels.end(), channel) == channels.end())
         channels.push_back(channel);
 }
 

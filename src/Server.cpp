@@ -338,7 +338,12 @@ void	Server::handleJoin()
 {
 	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
 
-	if (!client || !client->isRegistered(s();
+	if (!client || !client->isRegistered())
+	{
+		std::string	errMsg = ":" + _network_name + " 451: You have not registered!"
+		sendMessage(_fds[_nbClients - 1].fd, errMsg);
+		return ;
+	}
 	if (args.empty())
 	{
 		Errors::ERR_NEEDMOREPARAMS(*client, _input);
@@ -351,6 +356,36 @@ void	Server::handleJoin()
 	std::string	key = args.size() > 1 ? args[1] : "";
 
 	Channel*	channel = findChannel(channelName);
+	if (!channel)
+	{
+		_channels[channelName] = Channel[channelName];
+		channel = findChannel(channelName);
+		channel->addMember(client->getNickname());
+		channel->addOperator(client->getNickname()); //the creator is the default operator
+	}
+	else
+	{
+		if (channel->getUserLimit() > 0 && static_cast<int>(channel->getMembers().size() >=channel->getUserLimit()))
+		{
+			Errors::ERR_CHANNELISFULL(*client, *channel);
+			return ;
+		}
+		if (channel->getInvite() && channel->isInvited(client->getNickname()))
+		{
+			Errors::ERR_INVITEONLYCHAN(*client, *channel);
+			return ;
+		}
+		if (channel->getKey() && key != channel->getKeyValue())
+		{
+			Errors::ERR_BADCHANNELKEY(*client, *channel);
+			return ;
+		}
+		if (/*is kicked*/)
+		{
+			Errors::ERR_BANNEDFROMCHAN(*client, *channel);
+			return ;
+		}
+	}
 }
 
 void	Server::handleKick(){}

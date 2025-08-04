@@ -24,7 +24,7 @@ namespace Reply{
     std::string RPL_INVITING(const Client& client, const Channel& ch){
         std::string str = client.getClient();
         str += ' ';
-        str += client.getNick() ;
+        str += client.getNickname() ;
         str += ' ';
         str += ch.getName();
         str += "\r\n";
@@ -37,7 +37,7 @@ namespace Reply{
         str += " :Welcome to the ";
         str += server.getName();
         str += " Network, ";
-        str += client.getNick() ;
+        str += client.getNickname() ;
         str += "\r\n";
 
         return str;
