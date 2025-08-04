@@ -55,17 +55,17 @@ class Server{
         Server(const Server&);
         Server& operator=(const Server&);
 
-        std::map<std::string, Client>     _clients;
-        std::map<std::string, Channel>    _channels;
-        Input                   _input;
-        std::string             _network_name;
-        std::string             _version;
-        std::string             _StartTime;
-        uint16_t                _port;
-        std::string             _password;
-        int                     _nbClients;
-        struct pollfd			_fds[1024];
-        int                     _socketfd;
+        std::map<std::string, Client>   _clients;
+        std::map<std::string, Channel>  _channels;
+        Input                           _input;
+        std::string                     _network_name;
+        std::string                     _version;
+        std::string                     _StartTime;
+        uint16_t                        _port;
+        std::string                     _password;
+        int                             _nbClients;
+        struct pollfd			        _fds[1024];
+        int                             _socketfd;
 
         void        setDateTime();
         void        parsePort(std::string);

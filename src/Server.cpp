@@ -180,16 +180,16 @@ void    Server::clientRequest(int index){
     }
 
     std::string message(buffer, bytesRead);
+
+
     while (!message.empty() &&
     (message[message.length() - 1] == '\r' || 
     message[message.length() - 1] == '\n'))
         message.erase(message.length() - 1, 1);
 
-    message.erase(message.length() - 1, 1);
-    message.erase(message.length() - 1, 1);
-
     std::cout << "Raw cmd: [" << message << "]" << std::endl;
     _input = Input(message);
+
     Client* client = findClientByFd(_fds[index].fd);
 
     if (client && !client->isRegistered())
@@ -245,12 +245,13 @@ void    Server::process_login()
 //<<<<<<<<<<<<<<<<<<<<<<UTILS>>>>>>>>>>>>>>>>>>>>>>>>
 void Server::joinGreetings(int index)
 {
-    std::string reply = Reply::RPL_WELCOME(_clients[index - 1], *this);
+ /*    std::string reply = Reply::RPL_WELCOME(_clients[index - 1], *this);
     send(_fds[index].fd, reply.c_str(), reply.length(), 0);
     reply =  Reply::RPL_YOURHOST(_clients[index - 1], *this);
     send(_fds[index].fd, reply.c_str(), reply.length(), 0);
     reply =  Reply::RPL_CREATED(_clients[index - 1], *this);
-    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
+    send(_fds[index].fd, reply.c_str(), reply.length(), 0); */
+    (void)index;
 }
  
 void Server::setDateTime(){
@@ -270,8 +271,9 @@ void signalIgnore(){
 
 void    Server::closeExit(){
     _clients.clear();
-
+     std::cout <<"ESTOU AQUI" << std::endl;
     _channels.clear();
+    _input.~Input();
 
     if (_socketfd != -1)
         close(_socketfd);
@@ -343,7 +345,7 @@ void	Server::handleJoin(int)
 {
 	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
 
-	if (!client || !client->isRegistered());
+	if (!client || !client->isRegistered())
 	//if (args.empty())
 	{
 		Errors::ERR_NEEDMOREPARAMS(*client, _input);
@@ -358,13 +360,9 @@ void	Server::handleJoin(int)
 	Channel*	channel = findChannel(channelName); */
 }
 
-void	Server::handleKick(int){}
-
 void	Server::handleMode(int){}
 
 void    Server::handleKick(int){}
-
-void    Server::handleMode(int){}
 
 void    Server::handleNick(int){}
 
@@ -373,3 +371,6 @@ void    Server::handlePart(int){}
 void    Server::handlePass(int){}
 
 void    Server::handleUser(int){}
+
+void    Server::handleTopic(int){}
+void    Server::handlePrivmsg(int){}

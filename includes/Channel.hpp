@@ -21,7 +21,7 @@ private:
 
 public:
 	Channel();
-	Channel(std::string);
+	Channel(const std::string&);
 	Channel(const Channel&);
 	Channel& operator=(const Channel&);
 	~Channel();

@@ -15,7 +15,8 @@ Input::Input(std::string str){
     }
 }
 
-Input::~Input(){}
+Input::~Input(){
+}
 
 std::string Input::getCommand() const{
     return _command;
@@ -31,15 +32,14 @@ Input::Input(){}
 Input::Input(const Input& other){
     _command = other._command;
     _args = other._args;
-    _command = other._command;
 }
 
 Input& Input::operator=(const Input& other){
     if (this != &other)
     {
+        _args.clear();
         _command = other._command;
         _args = other._args;
-        _command = other._command;
     }
     return *this;
 }
