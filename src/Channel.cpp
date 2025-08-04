@@ -1,13 +1,12 @@
 #include "../includes/Channel.hpp"
+#include <algorithm>
 
 Channel::Channel()
     : _key(false), _invite(false), _topicRestricted(false), _userLimit(0)
 {
 }
 
-Channel::Channel(const std::string &name)
-    : _name(name), _key(false), _invite(false), _topicRestricted(false),
-      _userLimit(0)
+Channel::Channel(const std::string& name) : _name(name), _key(false), _invite(false), _topicRestricted(false), _userLimit(0)
 {
 }
 
@@ -124,4 +123,76 @@ bool    Channel::isMember(const std::string& nick) const
     return (std::find(_members.begin(), _members.end(), nick) != _members.end());
 }
 
+bool    Channel::addOperator(const std::string& nick)
+{
+    if (isMember(nick) && !isOperator(nick))
+    {
+        _operators.push_back(nick);
+        return (true);
+    }
+    return (false);
+}
 
+bool    Channel::removeOperator(const std::string& nick)
+{
+    std::vector<std::string>::iterator  it = std::find(_operators.begin(), _operators.end(), nick);
+
+    if (it != _operators.end())
+    {
+        _operators.erase(it);
+        return (true);
+    }
+    return (false);
+}
+
+bool    Channel::isOperator(const std::string& nick) const
+{
+    return (std::find(_operators.begin(), _operators.end(), nick) != _operators.end());
+}
+
+bool    Channel::addInvited(const std::string& nick)
+{
+    if (!isInvited(nick))
+    {
+        _invited.push_back(nick);
+        return (true);
+    }
+    return (false);
+}
+
+bool    Channel::isInvited(const std::string& nick) const
+{
+    return (std::find(_invited.begin(), _invited.end(), nick) != _invited.end());
+}
+
+void    Channel::setKey(const std::string& key)
+{
+    _key = !key.empty();
+    _keyValue = key;
+}
+
+void    Channel::removeKey()
+{
+    _key = false;
+    _keyValue.clear();
+}
+
+void    Channel::setInvite(bool status)
+{
+    _invite = status;
+}
+
+void    Channel::setTopicRestricted(bool status)
+{
+    _topicRestricted = status;
+}
+
+void    Channel::setUserLimit(int limit)
+{
+    _userLimit = limit;
+}
+
+void    Channel::setTopic(const std::string& topic)
+{
+    _topic = topic;
+}
