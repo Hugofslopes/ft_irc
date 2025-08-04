@@ -43,3 +43,11 @@ Input& Input::operator=(const Input& other){
     }
     return *this;
 }
+
+void Input::newCommand(std::string msg){
+    (void)msg;
+}
+
+void Input::concatCommand(std::string msg){
+    (void)msg;
+}

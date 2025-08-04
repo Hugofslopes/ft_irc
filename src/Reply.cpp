@@ -64,8 +64,18 @@ namespace Reply{
 
     std::string RPL_JOIN(const Client& client, const Channel& ch){
         std::string str = 
-        (":" + client.getNickname() + "!user@host JOIN " + ch.getName() + "\r\n");
-        std::cout << str <<std::endl;
+        (":" + client.getNickname() + "!user@host JOIN " + ch.getName() + "\r\n" +
+        "Now talking on #" +  ch.getName() + "\r\n" +
+        "Topic for #" + ch.getName() + " is: " + ch.getTopic() + "\r\n");
         return str;
     }
+
+     std::string RPL_JOINEDCHA(const Client& client){
+        std::string str = client.getClient();
+        str += " (";
+        str += client.getClient();
+        str += "@127.0.0.1) has joined";
+        str += "\r\n";
+        return str;
+     }
 }

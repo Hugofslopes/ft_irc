@@ -13,8 +13,10 @@ class Input{
         ~Input();
         Input();
 
-        std::string getCommand() const;
+        std::string                     getCommand() const;
 		const std::vector<std::string>&	getArgs() const;
+        void                            newCommand(std::string);
+        void                            concatCommand(std::string msg);
 
     private:
         Input(const Input&);

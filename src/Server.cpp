@@ -187,14 +187,16 @@ void    Server::clientRequest(int index){
         message.erase(message.length() - 1, 1);
 
     std::cout << "Raw cmd: [" << message << "]" << std::endl;
-    _input = Input(message);
+    if (message.size() >= 2 && message.substr(message.size() - 2) == "\r\n")
 
-    Client* client = findClientByFd(_fds[index].fd);
+        _input = Input(message);
 
+   // Client* client = findClientByFd(_fds[index].fd);
+/* 
     if (client && !client->isRegistered())
         process_login();
-    else
-        executeCommand(index); 
+    else */
+    executeCommand(index); 
 }
 
 void Server::executeCommand(int index){
@@ -203,7 +205,6 @@ void Server::executeCommand(int index){
         "INVITE", "JOIN", "KICK", "MODE", "NICK", "PART", "PASS", 
         "PRIVMSG", "TOPIC", "USER"
     };
-
     void (Server::*handlers[])(int) = {
     &Server::handleInvite,
     &Server::handleJoin,
@@ -270,7 +271,6 @@ void signalIgnore(){
 
 void    Server::closeExit(){
     _clients.clear();
-     std::cout <<"ESTOU AQUI" << std::endl;
     _channels.clear();
     _input.~Input();
 
@@ -340,10 +340,10 @@ void	Server::handleInvite(int)
 	std::cout << "INVITE" << std::endl;
 }
 
-void	Server::handleJoin(int)
+void	Server::handleJoin(int fd)
 {
 	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-
+    (void)fd;
 	if (!client || !client->isRegistered())
 	//if (args.empty())
 	{
