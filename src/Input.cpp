@@ -21,6 +21,11 @@ std::string Input::getCommand() const{
     return _command;
 }
 
+const std::vector<std::string>&	Input::getArgs() const
+{
+	return (_args);
+}
+
 Input::Input(){}
 
 Input::Input(const Input& other){
