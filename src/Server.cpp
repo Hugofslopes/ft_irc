@@ -333,7 +333,57 @@ void    Server::sendMessage(int fd, const std::string& message)
 
 void	Server::handleInvite()
 {
-	std::cout << "INVITE" << std::endl;
+	Client*	client = findClientByFd(_fds[_nbClients - 1].fd)
+
+	if (!client || !client->isRegistered())
+	{
+		std::string	errMsg = ":" + _network_name + "451: You have not registered";
+		sendMessage(_fds[_nbClients - 1].fd, errMsg);
+		return ;
+	}
+
+	std::vector<std::string>	args = _input.getArgs();
+	if (args.size() < 2)
+	{
+		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		return ;
+	}
+
+	std::string	targetNick = args[0];
+	std::string	channelName = args[1];
+	if (channelName != '#')
+		channelName = "#" + channelName;
+
+	Channel*	channel = findChannel(channelName);
+	if (!channel)
+	{
+		Errors::ERR_NOSUCHCHANNEL(*client, *channel);
+		return ;
+	}
+	if (!channel->isMember(client->getNickname()))
+	{
+		Errors::ERR_NOTONCHANNEL(*client, *channel);
+		return ;
+	}
+	if (!channel->isOperator(client->getNickname()))
+	{
+		Errors::ERR_CHANOPRIVSNEEDED(*client, *channel);
+		return ;
+	}
+
+	Client*	target = findClientByNick(targetNick);
+	if (!target)
+	{
+		std::string	errMsg = ":" + _network_name + " 401 " + client->getNickname() + " "
+			+ targetNick + ": No such nick/channel";
+		sendMessage(client->getFd(), errMsg);
+		return ;
+	}
+	
+	channel->addInvited(targetNick);
+	Reply::RPL_INVITING(*client, *channel);
+	std::string	inviteMsg = ":" + client->getNickname() + " INVITE " + targetNick + " " + channelName;
+	sendMessage(client->getFd(), inviteMsg);
 }
 
 void	Server::handleJoin()
