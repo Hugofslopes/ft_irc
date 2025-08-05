@@ -1,8 +1,10 @@
 #include "../includes/Server.hpp"
 #include "../includes/Input.hpp"
+#include "../includes/Reply.hpp"
 #include <sstream>
 #include <string>
 #include <sys/socket.h>
+#include <vector>
 
 Server* Server::instance = NULL;
 //<<<<<<<<<<<<<<<<<<<<<<CONSTRUCTORS>>>>>>>>>>>>>>>>>>>>>>>>
@@ -340,7 +342,7 @@ void	Server::handleJoin()
 
 	if (!client || !client->isRegistered())
 	{
-		std::string	errMsg = ":" + _network_name + " 451: You have not registered!"
+		std::string	errMsg = ":" + _network_name + " 451: You have not registered!";
 		sendMessage(_fds[_nbClients - 1].fd, errMsg);
 		return ;
 	}
@@ -380,15 +382,93 @@ void	Server::handleJoin()
 			Errors::ERR_BADCHANNELKEY(*client, *channel);
 			return ;
 		}
-		if (/*is kicked*/)
+		if (!channel->addMember(client->getNickname()))
 		{
-			Errors::ERR_BANNEDFROMCHAN(*client, *channel);
+			Errors::ERR_USERONCHANNEL(*client, *channel);
 			return ;
 		}
 	}
+
+	client->addChannel(channelName);
+	std::string	joinMsg = ":" + client->getNickname() + " JOIN " + channelName;
+
+	const std::vector<std::string>&	members = channel->getMembers();
+	for (size_t i = 0; i < members.size(); ++i)
+	{
+		Client*	member = findClientByNick(members[i]);
+		if (member)
+			sendMessage(member->getFd(), joinMsg);
+	}
+
+	if (channel->getTopic().empty())
+		Reply::RPL_NOTOPIC(*client, *channel);
+	else
+		Reply::RPL_TOPIC(*client, *channel);
 }
 
-void	Server::handleKick(){}
+void	Server::handleKick()
+{
+	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+
+	if (!client || !client->isRegistered())
+	{
+		std::string	errMsg = ":" + _network_name + " 451: You have not registered!";
+		sendMessage(_fds[_nbClients - 1].fd, errMsg);
+		return ;
+	}
+
+	std::vector<std::string>	args = _input.getArgs();
+	if (args.size() < 2)
+	{
+		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		return ;
+	}
+
+	std::string	channelName = args[0];
+	if (channelName[0] != '#')
+		channelName = "#" + channelName;
+	std::string	targetNick = args[1];
+	std::string	reason = args.size() > 2 ? args[2] : "No reason";
+
+	Channel*	channel = findChannel(channelName);
+	if (!channel)
+	{
+		Errors::ERR_NOSUCHCHANNEL(*client, *channel);
+		return ;
+	}
+	if (!channel->isMember(client->getNickname()))
+	{
+		Errors::ERR_NOTONCHANNEL(*client, *channel);
+		return ;
+	}
+	if (!channel->isOperator(client->getNickname()))
+	{
+		Errors::ERR_CHANOPRIVSNEEDED(*client, *channel);
+		return ;
+	}
+	if (!channel->isMember(targetNick))
+	{
+		Errors::ERR_USERNOTINCHANNEL(*client, *channel);
+		return ;
+	}
+
+	channel->removeMember(targetNick);
+	Client*	target = findClientByNick(targetNick);
+	if (target)
+	{
+		target->removeChannel(channelName);
+		std::string	kickMsg = ":" + client->getNickname() + " KICK " + channelName + " "
+			+ targetNick + " :" + reason;
+		const std::vector<std::string>&	members = channel->getMembers();
+		for (size_t i = 0; i < members.size(); ++i)
+		{
+			Client*	member = findClientByNick(members[i]);
+			if (member)
+				sendMessage(member->getFd(), kickMsg);
+		}
+		sendMessage(target->getFd(), kickMsg);
+	}
+}
 
 void	Server::handleMode(){}
 
