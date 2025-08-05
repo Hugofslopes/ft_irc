@@ -149,8 +149,6 @@ void    Server::clientRequest(int index){
     memset(buffer, 0, sizeof(buffer));
 
     int bytesRead = recv(_fds[index].fd, buffer, sizeof(buffer) - 1, 0);
-    if (bytesRead == -1 && errno == EAGAIN)
-            return; 
     std::cout << "BYTESREAD- " << bytesRead << std::endl;
     if (bytesRead <= 0)
     {
