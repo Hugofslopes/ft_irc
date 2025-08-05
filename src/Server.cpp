@@ -396,6 +396,8 @@ void	Server::handleJoin()
 		sendMessage(_fds[_nbClients - 1].fd, errMsg);
 		return ;
 	}
+
+	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
 		Errors::ERR_NEEDMOREPARAMS(*client, _input);
@@ -529,34 +531,27 @@ void    Server::handlePart(){}
 void    Server::handlePass()
 {
 	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
+	if (!client)
 		return ;
-	}
 
 	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
-		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
 		return ;
 	}
-
-	std::string	pass = args.size() < 1 ? args[1] : "";
-
 	if (client->isRegistered())
 	{
-		Errors::ERR_ALREADYREGISTERED(*client);
+		sendMessage(client->getFd(), Errors::ERR_ALREADYREGISTERED(*client));
 		return ;
 	}
-	if (pass != _password)
+	if (args[0] != _password)
 	{
-		Errors:Errors::ERR_PASSWDMISMATCH(*client);
+		sendMessage(client->getFd(), Errors::ERR_PASSWDMISMATCH(*client));
 		return ;
 	}
 
-	std::string 
+	client->setPass(args[0]);
 }
 
 void    Server::handleTopic()
@@ -667,7 +662,7 @@ void    Server::handlePrivmsg()
 	}
 	else
 	{
-		Client*	targetClient = findClientByFd(target);
+		Client*	targetClient = findClientByNick(target);
 		if (!targetClient)
 		{
 			std::string	errMsg = ":" + _network_name + " 401 " + client->getNickname() + " "
@@ -675,9 +670,35 @@ void    Server::handlePrivmsg()
 			sendMessage(client->getFd(), errMsg);
 			return ;
 		}
-		std::string	privMsg = ":" + client->getNickname() + " PRIVMSG" + target + " :" + message:
+		std::string	privMsg = ":" + client->getNickname() + " PRIVMSG" + target + " :" + message;
 		sendMessage(targetClient->getFd(), privMsg);
 	}
 }
 
-void    Server::handleUser(){}
+void    Server::handleUser()
+{
+	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+
+	if (!client)
+		return ;
+
+	std::vector<std::string>	args = _input.getArgs();
+	if (args.size() < 4)
+	{
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		return ;
+	}
+	if (client->isRegistered())
+	{
+		sendMessage(client->getFd(), Errors::ERR_ALREADYREGISTERED(*client));
+		return ;
+	}
+
+	std::string	username = args[0];
+	//Don't forget to ignore hostname and servername(args[1] and args[2]), use realname (args[3])
+	client->setUsername(username);
+	client->setRegistered(true);
+
+	if (!client->getNickname().empty() && !client->getPass().empty())
+		joinGreetings(_nbClients - 1);
+}
