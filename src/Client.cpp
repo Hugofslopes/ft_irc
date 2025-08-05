@@ -1,4 +1,5 @@
 #include "../includes/Client.hpp"
+#include <string>
 
 Client::Client() : fd(-1), registered(false) {}
 
@@ -37,6 +38,11 @@ std::string Client::getUsername() const { return (username); }
 
 std::string Client::getNickname() const { return (nick); }
 
+std::string	Client::getPass() const
+{
+	return (pass);
+}
+
 int Client::getFd() const { return (fd); }
 
 bool Client::isRegistered() const { return (registered); }
@@ -58,6 +64,11 @@ void Client::setUsername(const std::string &username) {
 }
 
 void Client::setNickname(const std::string &nick) { this->nick = nick; }
+
+void	Client::setPass(const std::string& pass)
+{
+	this->pass = pass;
+}
 
 void Client::setRegistered(bool status) { registered = status; }
 
