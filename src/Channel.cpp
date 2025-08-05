@@ -39,7 +39,7 @@ Channel    &Channel::operator=(const Channel &other)
         _operators = other._operators;
         _invited = other._invited;
     }
-    return *this;
+	return (*this);
 }
 
 Channel::~Channel()

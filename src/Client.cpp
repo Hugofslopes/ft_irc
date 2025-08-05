@@ -1,16 +1,8 @@
 #include "../includes/Client.hpp"
 
-Client::Client(){
-    client = "default";
-    nick = "default";
-}
+Client::Client() : fd(-1), registered(false) {}
 
-Client::Client(int fd){
-    client = "default";
-    nick = "default";
-    this->fd = fd;
-    registered = false;
-}
+Client::Client(int fd) : fd(fd), registered(false) {}
 
 Client::Client(const Client &other) {
     client = other.client;

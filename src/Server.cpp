@@ -1,8 +1,10 @@
 #include "../includes/Server.hpp"
 #include "../includes/Input.hpp"
+#include "../includes/Reply.hpp"
 #include <sstream>
 #include <string>
 #include <sys/socket.h>
+#include <vector>
 
 Server* Server::instance = NULL;
 //<<<<<<<<<<<<<<<<<<<<<<CONSTRUCTORS>>>>>>>>>>>>>>>>>>>>>>>>
@@ -343,23 +345,135 @@ void	Server::handleInvite(int)
 void	Server::handleJoin(int fd)
 {
 	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-    (void)fd;
+
 	if (!client || !client->isRegistered())
-	//if (args.empty())
+	{
+		std::string	errMsg = ":" + _network_name + " 451: You have not registered!";
+		sendMessage(_fds[_nbClients - 1].fd, errMsg);
+		return ;
+	}
+	if (args.empty())
+	{
+		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		return ;
+	}
+ 	std::string	channelName = args[0];
+	if (channelName[0] != '#')
+		channelName = "#" + channelName;
+	std::string	key = args.size() > 1 ? args[1] : "";
+
+	Channel*	channel = findChannel(channelName);
+	if (!channel)
+	{
+		_channels[channelName] = Channel[channelName];
+		channel = findChannel(channelName);
+		channel->addMember(client->getNickname());
+		channel->addOperator(client->getNickname()); //the creator is the default operator
+	}
+	else
+	{
+		if (channel->getUserLimit() > 0 && static_cast<int>(channel->getMembers().size() >=channel->getUserLimit()))
+		{
+			Errors::ERR_CHANNELISFULL(*client, *channel);
+			return ;
+		}
+		if (channel->getInvite() && channel->isInvited(client->getNickname()))
+		{
+			Errors::ERR_INVITEONLYCHAN(*client, *channel);
+			return ;
+		}
+		if (channel->getKey() && key != channel->getKeyValue())
+		{
+			Errors::ERR_BADCHANNELKEY(*client, *channel);
+			return ;
+		}
+		if (!channel->addMember(client->getNickname()))
+		{
+			Errors::ERR_USERONCHANNEL(*client, *channel);
+			return ;
+		}
+	}
+
+	client->addChannel(channelName);
+	std::string	joinMsg = ":" + client->getNickname() + " JOIN " + channelName;
+
+	const std::vector<std::string>&	members = channel->getMembers();
+	for (size_t i = 0; i < members.size(); ++i)
+	{
+		Client*	member = findClientByNick(members[i]);
+		if (member)
+			sendMessage(member->getFd(), joinMsg);
+	}
+
+	if (channel->getTopic().empty())
+		Reply::RPL_NOTOPIC(*client, *channel);
+	else
+		Reply::RPL_TOPIC(*client, *channel);
+}
+
+void	Server::handleKick()
+{
+	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+
+	if (!client || !client->isRegistered())
+	{
+		std::string	errMsg = ":" + _network_name + " 451: You have not registered!";
+		sendMessage(_fds[_nbClients - 1].fd, errMsg);
+		return ;
+	}
+
+	std::vector<std::string>	args = _input.getArgs();
+	if (args.size() < 2)
 	{
 		Errors::ERR_NEEDMOREPARAMS(*client, _input);
 		return ;
 	}
 
-/* 	std::string	channelName = args[0];
+	std::string	channelName = args[0];
 	if (channelName[0] != '#')
 		channelName = "#" + channelName;
-	std::string	key = args.size() > 1 ? args[1] : "";
+	std::string	targetNick = args[1];
+	std::string	reason = args.size() > 2 ? args[2] : "No reason";
 
-	Channel*	channel = findChannel(channelName); */
+	Channel*	channel = findChannel(channelName);
+	if (!channel)
+	{
+		Errors::ERR_NOSUCHCHANNEL(*client, *channel);
+		return ;
+	}
+	if (!channel->isMember(client->getNickname()))
+	{
+		Errors::ERR_NOTONCHANNEL(*client, *channel);
+		return ;
+	}
+	if (!channel->isOperator(client->getNickname()))
+	{
+		Errors::ERR_CHANOPRIVSNEEDED(*client, *channel);
+		return ;
+	}
+	if (!channel->isMember(targetNick))
+	{
+		Errors::ERR_USERNOTINCHANNEL(*client, *channel);
+		return ;
+	}
+
+	channel->removeMember(targetNick);
+	Client*	target = findClientByNick(targetNick);
+	if (target)
+	{
+		target->removeChannel(channelName);
+		std::string	kickMsg = ":" + client->getNickname() + " KICK " + channelName + " "
+			+ targetNick + " :" + reason;
+		const std::vector<std::string>&	members = channel->getMembers();
+		for (size_t i = 0; i < members.size(); ++i)
+		{
+			Client*	member = findClientByNick(members[i]);
+			if (member)
+				sendMessage(member->getFd(), kickMsg);
+		}
+		sendMessage(target->getFd(), kickMsg);
+	}
 }
-
-void	Server::handleMode(int){}
 
 void    Server::handleKick(int){}
 
