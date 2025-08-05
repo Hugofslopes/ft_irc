@@ -149,6 +149,8 @@ void    Server::clientRequest(int index){
     memset(buffer, 0, sizeof(buffer));
 
     int bytesRead = recv(_fds[index].fd, buffer, sizeof(buffer) - 1, 0);
+    if (bytesRead == -1 && errno == EAGAIN)
+            return; 
     std::cout << "BYTESREAD- " << bytesRead << std::endl;
     if (bytesRead <= 0)
     {
@@ -183,12 +185,20 @@ void    Server::clientRequest(int index){
 
     std::string message(buffer, bytesRead);
 
+    std::string::size_type pos = 0;
+    while ((pos = message.find("\r\n", pos)) != std::string::npos) {
+        message.replace(pos, 2, "!!");
+        pos += 2;
+    }
+
+    std::cout << "Raw cmd: [" << message << "]" << std::endl;
+
     while (!message.empty() &&
     (message[message.length() - 1] == '\r' || 
     message[message.length() - 1] == '\n'))
         message.erase(message.length() - 1, 1);
 
-    std::cout << "Raw cmd: [" << message << "]" << std::endl;
+    //std::cout << "Raw cmd: [" << message << "]" << std::endl;
     if (message.size() >= 2 && message.substr(message.size() - 2) == "\r\n")
 
         _input = Input(message);
@@ -352,15 +362,15 @@ void	Server::handleJoin(int)
 		sendMessage(_fds[_nbClients - 1].fd, errMsg);
 		return ;
 	}
-	if (args.empty())
+	/* if (args.empty())
 	{
 		Errors::ERR_NEEDMOREPARAMS(*client, _input);
 		return ;
-	}
+	} 
  	std::string	channelName = args[0];
 	if (channelName[0] != '#')
 		channelName = "#" + channelName;
-	std::string	key = args.size() > 1 ? args[1] : "";
+	std::string	key = args.size() > 1 ? args[1] : ""; 
 
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
@@ -408,7 +418,7 @@ void	Server::handleJoin(int)
 	if (channel->getTopic().empty())
 		Reply::RPL_NOTOPIC(*client, *channel);
 	else
-		Reply::RPL_TOPIC(*client, *channel);
+		Reply::RPL_TOPIC(*client, *channel);*/
 }
 
 void	Server::handleKick(int)
@@ -484,4 +494,5 @@ void    Server::handlePass(int){}
 void    Server::handleUser(int){}
 
 void    Server::handleTopic(int){}
+ void        Server::handleMode(int){}
 void    Server::handlePrivmsg(int){}

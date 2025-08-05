@@ -11,6 +11,7 @@
 # include <netinet/in.h>
 # include <sys/socket.h>
 # include <fcntl.h>
+# include <errno.h>
 # include <cstring>
 
 
