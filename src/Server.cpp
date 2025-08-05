@@ -342,7 +342,7 @@ void	Server::handleInvite(int)
 	std::cout << "INVITE" << std::endl;
 }
 
-void	Server::handleJoin(int fd)
+void	Server::handleJoin(int)
 {
 	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
 
@@ -365,7 +365,7 @@ void	Server::handleJoin(int fd)
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		_channels[channelName] = Channel[channelName];
+		_channels[channelName] = Channel(channelName);
 		channel = findChannel(channelName);
 		channel->addMember(client->getNickname());
 		channel->addOperator(client->getNickname()); //the creator is the default operator
@@ -411,7 +411,7 @@ void	Server::handleJoin(int fd)
 		Reply::RPL_TOPIC(*client, *channel);
 }
 
-void	Server::handleKick()
+void	Server::handleKick(int)
 {
 	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
 
@@ -474,8 +474,6 @@ void	Server::handleKick()
 		sendMessage(target->getFd(), kickMsg);
 	}
 }
-
-void    Server::handleKick(int){}
 
 void    Server::handleNick(int){}
 
