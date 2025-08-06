@@ -1,6 +1,7 @@
 #include "../includes/Server.hpp"
 #include "../includes/Input.hpp"
 #include "../includes/Reply.hpp"
+#include <cctype>
 #include <sstream>
 #include <string>
 #include <sys/socket.h>
@@ -400,7 +401,7 @@ void	Server::handleJoin()
 	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
-		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
 		return ;
 	}
 
@@ -421,22 +422,22 @@ void	Server::handleJoin()
 	{
 		if (channel->getUserLimit() > 0 && static_cast<int>(channel->getMembers().size() >=channel->getUserLimit()))
 		{
-			Errors::ERR_CHANNELISFULL(*client, *channel);
+			sendMessage(client->getFd(), Errors::ERR_CHANNELISFULL(*client, *channel));
 			return ;
 		}
 		if (channel->getInvite() && channel->isInvited(client->getNickname()))
 		{
-			Errors::ERR_INVITEONLYCHAN(*client, *channel);
+			sendMessage(client->getFd(), Errors::ERR_INVITEONLYCHAN(*client, *channel));
 			return ;
 		}
 		if (channel->getKey() && key != channel->getKeyValue())
 		{
-			Errors::ERR_BADCHANNELKEY(*client, *channel);
+			sendMessage(client->getFd(), Errors::ERR_BADCHANNELKEY(*client, *channel));
 			return ;
 		}
 		if (!channel->addMember(client->getNickname()))
 		{
-			Errors::ERR_USERONCHANNEL(*client, *channel);
+			sendMessage(client->getFd(), Errors::ERR_USERONCHANNEL(*client, *channel));
 			return ;
 		}
 	}
@@ -453,9 +454,9 @@ void	Server::handleJoin()
 	}
 
 	if (channel->getTopic().empty())
-		Reply::RPL_NOTOPIC(*client, *channel);
+		sendMessage(client->getFd(), Reply::RPL_NOTOPIC(*client, *channel));
 	else
-		Reply::RPL_TOPIC(*client, *channel);
+		sendMessage(client->getFd(), Reply::RPL_TOPIC(*client, *channel));
 }
 
 void	Server::handleKick()
@@ -522,11 +523,120 @@ void	Server::handleKick()
 	}
 }
 
-void	Server::handleMode(){}
+void	Server::handleMode()
+{
 
-void    Server::handleNick(){}
+}
 
-void    Server::handlePart(){}
+void    Server::handleNick()
+{
+	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+	if (!client)
+		return ;
+
+	std::vector<std::string>	args = _input.getArgs();
+	if (args.empty())
+	{
+		sendMessage(client->getFd(), Errors::ERR_NONICKNAMEGIVEN(*client));
+		return ;
+	}
+
+	std::string	newNick = args[0];
+	// Validate nickname
+	if (newNick.empty() || isdigit(newNick[0]) || newNick.find_first_of(" ,*?!@.#&") != std::string::npos)
+	{
+		sendMessage(client->getFd(), Errors::ERR_ERRONEUSNICKNAME(*client));
+		return ;
+	}
+
+	if (findClientByNick(newNick))
+	{
+		sendMessage(client->getFd(), Errors::ERR_NICKNAMEINUSE(*client));
+		return ;
+	}
+
+	std::string	oldNick = client->getNickname().empty() ? client->getClient() : client->getNickname();
+	client->setNickname(newNick);
+	Client	tempClient = *client;
+	_clients.erase(oldNick);
+	_clients[newNick] = tempClient;
+
+	const std::vector<std::string>&	channels = client->getChannels();
+	for (size_t i = 0; i < channels.size(); ++i)
+	{
+		Channel*	channel = findChannel(channels[i]);
+		if (channel)
+		{
+			std::string	nickMsg = ":" + oldNick + " NICK " + newNick;
+			const std::vector<std::string>&	members = channel->getMembers();
+			for (size_t j = 0; j < members.size(); ++j)
+			{
+				Client*	member = findClientByNick(members[j]);
+				if (member)
+					sendMessage(member->getFd(), nickMsg);
+			}
+			channel->removeMember(oldNick);
+			channel->addMember(newNick);
+			if (client->isOperator(channels[i]))
+			{
+				channel->removeOperator(oldNick);
+				channel->addOperator(newNick);
+			}
+		}
+	}
+
+	if (!oldNick.empty() && oldNick != client->getClient())
+	{
+		std::string	nickMsg = ":" + oldNick + " NICK " + newNick;
+		sendMessage(client->getFd(), nickMsg);
+	}
+}
+
+void    Server::handlePart()
+{
+	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+	if (!client || !client->isRegistered())
+	{
+		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
+		sendMessage(_fds[_nbClients - 1].fd, errMsg);
+		return ;
+	}
+
+	std::vector<std::string>	args = _input.getArgs();
+	if (args.empty())
+	{
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		return ;
+	}
+
+	std::string	channelName = args[0];
+	if (channelName[0] != '#')
+		channelName = "#" + channelName;
+
+	Channel*	channel = findChannel(channelName);
+	if (!channel)
+	{
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		return ;
+	}
+	if (!channel->isMember(client->getNickname()))
+	{
+		sendMessage(client->getFd(), Errors::ERR_NOTONCHANNEL(*client, *channel));
+		return ;
+	}
+
+	channel->removeMember(client->getNickname());
+	client->removeChannel(channelName);
+	std::string	partMsg = ":" + client->getNickname() + " PART " + channelName;
+	const std::vector<std::string>&	members = channel->getMembers();
+	for (size_t i = 0; i < members.size(); ++i)
+	{
+		Client* member = findClientByNick(members[i]);
+		if (member)
+			sendMessage(member->getFd(), partMsg);
+	}
+	sendMessage(client->getFd(), partMsg);
+}
 
 void    Server::handlePass()
 {
@@ -559,7 +669,7 @@ void    Server::handleTopic()
 	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
 	if (!client || !client->isRegistered())
 	{
-		std::string	errMsg = ":"; _network_name + " 451 :You have not registered";
+		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
 		sendMessage(_fds[_nbClients - 1].fd, errMsg);
 		return ;
 	}
@@ -620,7 +730,7 @@ void    Server::handlePrivmsg()
 
 	if (!client || !client->isRegistered())
 	{
-		std::string	errMsg = ":" _network_name + " 451 :You have not registered";
+		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
 		sendMessage(_fds[_nbClients - 1].fd, errMsg);
 		return ;
 	}
@@ -657,7 +767,7 @@ void    Server::handlePrivmsg()
 		{
 			Client*	member = findClientByNick(members[i]);
 			if (member)
-				sendMessage(member->getFd, privMsg);
+				sendMessage(member->getFd(), privMsg);
 		}
 	}
 	else
