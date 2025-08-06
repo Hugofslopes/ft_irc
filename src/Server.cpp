@@ -346,7 +346,7 @@ void	Server::handleInvite()
 	std::vector<std::string>	args = _input.getArgs();
 	if (args.size() < 2)
 	{
-		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
 		return ;
 	}
 
@@ -358,17 +358,17 @@ void	Server::handleInvite()
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		Errors::ERR_NOSUCHCHANNEL(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
 		return ;
 	}
 	if (!channel->isMember(client->getNickname()))
 	{
-		Errors::ERR_NOTONCHANNEL(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_NOTONCHANNEL(*client, *channel));
 		return ;
 	}
 	if (!channel->isOperator(client->getNickname()))
 	{
-		Errors::ERR_CHANOPRIVSNEEDED(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_CHANOPRIVSNEEDED(*client, *channel));
 		return ;
 	}
 
@@ -382,7 +382,7 @@ void	Server::handleInvite()
 	}
 	
 	channel->addInvited(targetNick);
-	Reply::RPL_INVITING(*client, *channel);
+	sendMessage(client->getFd(), Reply::RPL_INVITING(*client, *channel));
 	std::string	inviteMsg = ":" + client->getNickname() + " INVITE " + targetNick + " " + channelName;
 	sendMessage(client->getFd(), inviteMsg);
 }
@@ -473,7 +473,7 @@ void	Server::handleKick()
 	std::vector<std::string>	args = _input.getArgs();
 	if (args.size() < 2)
 	{
-		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
 		return ;
 	}
 
@@ -486,22 +486,22 @@ void	Server::handleKick()
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		Errors::ERR_NOSUCHCHANNEL(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
 		return ;
 	}
 	if (!channel->isMember(client->getNickname()))
 	{
-		Errors::ERR_NOTONCHANNEL(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_NOTONCHANNEL(*client, *channel));
 		return ;
 	}
 	if (!channel->isOperator(client->getNickname()))
 	{
-		Errors::ERR_CHANOPRIVSNEEDED(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_CHANOPRIVSNEEDED(*client, *channel));
 		return ;
 	}
 	if (!channel->isMember(targetNick))
 	{
-		Errors::ERR_USERNOTINCHANNEL(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_USERNOTINCHANNEL(*client, *channel));
 		return ;
 	}
 
@@ -525,7 +525,37 @@ void	Server::handleKick()
 
 void	Server::handleMode()
 {
+	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+	if (!client || !client->isRegistered())
+	{
+		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
+		sendMessage(_fds[_nbClients - 1].fd, errMsg);
+		return ;
+	}
 
+	std::vector<std::string>	args = _input.getArgs();
+	if (args.empty())
+	{
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		return ;
+	}
+
+	std::string	channelName = args[0];
+	if (channelName[0] != '#')
+		channelName = "#" + channelName;
+	std::string	modeStr = args.size() > 1 ? args[1] : "";
+
+	Channel*	channel = findChannel(channelName);
+	if (!channel)
+	{
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		return ;
+	}
+	if (!channel->isOperator(client->getNickname()))
+	{
+		sendMessage(client->getFd(), Errors::ERR_CHANOPRIVSNEEDED(*client, *channel));
+		return ;
+	}
 }
 
 void    Server::handleNick()
@@ -738,7 +768,7 @@ void    Server::handlePrivmsg()
 	std::vector<std::string>	args = _input.getArgs();
 	if (args.size() < 2)
 	{
-		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
 		return ;
 	}
 
@@ -752,12 +782,12 @@ void    Server::handlePrivmsg()
 		Channel*	channel = findChannel(target);
 		if (!channel)
 		{
-			Errors::ERR_NOSUCHCHANNEL(*client, *channel);
+			sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
 			return ;
 		}
 		if (!channel->isMember(client->getNickname()))
 		{
-			Errors::ERR_NOTONCHANNEL(*client, *channel);
+			sendMessage(client->getFd(), Errors::ERR_NOTONCHANNEL(*client, *channel));
 			return ;
 		}
 		
