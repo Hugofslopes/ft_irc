@@ -1,66 +1,131 @@
-#ifndef CLIENT_HPP
-# define CLIENT_HPP
+#include "../includes/Client.hpp"
 
-# include <iostream>
-# include <map>
-# include <vector>
-# include <algorithm>
-# include "../includes/Input.hpp"
+Client::Client() : fd(-1), registered(false) {}
 
-class Client
-{
-private:
-	std::string	client;
-	std::string	username;
-	std::string	nick;
-	std::string	pass;
-	std::string _partialMessage;
-    std::string _buffer;
+Client::Client(int fd) : fd(fd), registered(false) {}
 
-	Input		_input;
+Client::Client(const Client &other) {
+    client = other.client;
+    username = other.username;
+    nick = other.nick;
+    pass = other.pass;
+    fd = other.fd;
+    registered = other.registered;
+    operatorStatus = other.operatorStatus;
+    channels = other.channels;
+}
 
-	int		fd;
-	bool	registered;
+Client &Client::operator=(const Client &other) {
+    if (this != &other) {
+        client = other.client;
+        username = other.username;
+        nick = other.nick;
+        pass = other.pass;
+        fd = other.fd;
+        registered = other.registered;
+        operatorStatus = other.operatorStatus;
+        channels = other.channels;
+    }
+    return (*this);
+}
 
-	std::map<std::string, bool>	operatorStatus;
-	std::vector<std::string>	channels;
+Client::~Client() {}
 
-public:
-	Client();
-	Client(int fd);
-	Client& operator=(const Client& other);
-	Client(const Client&);
-	~Client();
+std::string Client::getClient() const { return (client); }
 
-	//INPUT
-	Input	&getInput() { return _input; }
-    const Input	&getInput() const { return _input; }
-	void	appendPartialMessage(const std::string &message);
-	void	clearInput();
-	bool	processMessage(const std::string &message);
-	bool	processInitialCommands();
+std::string Client::getUsername() const { return (username); }
 
-	//Getters
-	std::string	getClient() const;
-	std::string	getUsername() const;
-	std::string	getNickname() const;
+std::string Client::getNickname() const { return (nick); }
 
-	int			getFd() const;
+int Client::getFd() const { return (fd); }
 
-	bool		isRegistered() const;
-	bool		isOperator(const std::string& channel) const;
+bool Client::isRegistered() const { return (registered); }
 
-	const std::vector<std::string>&	getChannels() const;
+bool Client::isOperator(const std::string &channel) const {
+    std::map<std::string, bool>::const_iterator it =
+        operatorStatus.find(channel);
+    return (it != operatorStatus.end() && it->second);
+}
 
-	//Setters
-	void	setClient(const std::string& client);
-	void	setUsername(const std::string& username);
-	void	setNickname(const std::string& nick);
-	void	setRegistered(bool status);
-	void	setOperator(const std::string& channel, bool status);
+const std::vector<std::string> &Client::getChannels() const {
+    return (channels);
+}
 
-	void	addChannel(const std::string& channel);
-	void	removeChannel(const std::string& channel);
-};
+void Client::setClient(const std::string &client) { this->client = client; }
 
-#endif
+void Client::setUsername(const std::string &username) {
+    this->username = username;
+}
+
+void Client::setNickname(const std::string &nick) { this->nick = nick; }
+
+void Client::setRegistered(bool status) { registered = status; }
+
+void Client::setOperator(const std::string &channel, bool status) {
+    operatorStatus[channel] = status;
+}
+
+void Client::addChannel(const std::string &channel) {
+    if (std::find(channels.begin(), channels.end(), channel) == channels.end())
+        channels.push_back(channel);
+}
+
+void Client::removeChannel(const std::string &channel) {
+    std::vector<std::string>::iterator it =
+        std::find(channels.begin(), channels.end(), channel);
+
+    if (it != channels.end()) {
+        channels.erase(it);
+        operatorStatus.erase(channel);
+    }
+}
+
+void	Client::appendPartialMessage(const std::string &message) {
+	_partialMessage += message;
+	if (_input.isComplete(_partialMessage)) {
+		_input.parse(_partialMessage);
+		_partialMessage.clear();
+	}
+}
+
+//Verify if it is not Partial
+bool	Client::processMessage(const std::string &message) {
+        _partialMessage += message;
+
+        if (!getInput().isComplete(_partialMessage))
+            return false;
+        _input.parse(_partialMessage);
+        _partialMessage.clear();
+        return true;
+}
+
+//IN PROGRESS
+//ONLY IF CLIENT IS NOT REGISTERED
+bool	Client::processInitialCommands() {
+
+	size_t pos;
+
+	while ((pos = _buffer.find("\r\n")) != std::string::npos)
+	{
+		std::string cmd = _buffer.substr(0, pos);
+		_buffer.erase(0, pos + 2);
+
+		_input.parse(cmd);
+		if (!_input.isValid())
+			return false;
+
+		//does this makes sense...? Acho que deveria inicializar no parser e depois executa (?)
+		if (_input.getCommand() == "PASS")
+			handlePass();
+		else if (_input.getCommand() == "NICK")
+			handleNick();
+		else if (_input.getCommand() == "USER")
+			handleUser();
+
+		registered = true;
+		return true;
+	}
+	return false;
+}
+
+void Client::clearInput() {return _input.clear();}
