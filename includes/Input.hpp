@@ -15,6 +15,7 @@ private:
     std::string _prefix;
     std::string _command;
     std::string _nick;
+	std::string _realname;
     std::string _channel;
     std::string _target;
     std::string _key;
