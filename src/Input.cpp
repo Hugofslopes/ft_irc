@@ -207,8 +207,9 @@ bool Input::isComplete(const std::string &message) const {
 }
 
 //Getters
-const std::string& Input::getPrefix() const { return _prefix; }
-const std::string& Input::getCommand() const { return _command; }
-const std::string& Input::getTrailing() const { return _trailing; }
-const std::string& Input::getRaw() const { return _raw; }
+const std::vector<std::string> &Input::getArgs() const { return _args; }
+const std::string  &Input::getPrefix() const { return _prefix; }
+const std::string  &Input::getCommand() const { return _command; }
+const std::string  &Input::getTrailing() const { return _trailing; }
+const std::string  &Input::getRaw() const { return _raw; }
 bool Input::isValid() const { return _isValid; }
