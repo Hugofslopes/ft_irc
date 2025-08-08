@@ -12,6 +12,8 @@ class Input{
     void parseComponents();
     void validateBaseCommand();
 
+	std::vector<std::string> _args;
+
     std::string _raw;
     std::string _prefix;
     std::string _command;
