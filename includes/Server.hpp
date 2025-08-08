@@ -1,7 +1,6 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
-# include <cstdint>
 # include <iostream>
 # include <vector>
 # include <map>
@@ -32,28 +31,6 @@ class Server
 		Server(std::string, std::string);
 		~Server();
 
-<<<<<<< HEAD
-        void        start();
-        void        run();
-        void        newClient();	
-        void        clientRequest(int);
-        void        executeCommand(int);
-        void        process_login();
-
-        void        handleInvite(int);
-        void        handleJoin(int);
-        void        handleKick(int);
-        void        handleMode(int);
-        void        handleNick(int);
-        void        handlePart(int);
-        void        handlePass(int);
-        void        handleTopic(int);
-        void        handlePrivmsg(int);
-        void        handleUser(int);
-        
-        static Server*          instance;
-        void        closeExit();
-=======
 		std::string	getName() const;
 		std::string	getVersion() const;
 		std::string	getStTime() const;
@@ -75,29 +52,14 @@ class Server
 		void		handleTopic();
 		void		handlePrivmsg();
 		void		handleUser();
->>>>>>> origin/Manuel
 
 		static Server*	instance;
 		void		closeExit();
 
-<<<<<<< HEAD
-        std::map<std::string, Client>   _clients;
-        std::map<std::string, Channel>  _channels;
-        Input                           _input;
-        std::string                     _network_name;
-        std::string                     _version;
-        std::string                     _StartTime;
-        uint16_t                        _port;
-        std::string                     _password;
-        int                             _nbClients;
-        struct pollfd			        _fds[1024];
-        int                             _socketfd;
-=======
 	private:
 		Server();
 		Server(const Server&);
 		Server& operator=(const Server&);
->>>>>>> origin/Manuel
 
 		std::map<std::string, Client>	_clients;
 		std::map<std::string, Channel>	_channels;

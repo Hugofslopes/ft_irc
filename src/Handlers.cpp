@@ -92,7 +92,7 @@ void	Server::handleJoin()
 	}
 	else
 	{
-		if (channel->getUserLimit() > 0 && static_cast<int>(channel->getMembers().size() >=channel->getUserLimit()))
+		if (channel->getUserLimit() > 0 && static_cast<int>(channel->getMembers().size()) >= channel->getUserLimit())
 		{
 			sendMessage(client->getFd(), Errors::ERR_CHANNELISFULL(*client, *channel));
 			return ;

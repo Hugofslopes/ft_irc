@@ -122,138 +122,7 @@ void	Server::run()
     }
 }
 
-<<<<<<< HEAD
-void    Server::newClient(){
-    sockaddr_storage clientAddr;
-    socklen_t clientLen = sizeof(clientAddr);
-
-    int clientFd = accept(_socketfd, (sockaddr*)&clientAddr, &clientLen);
-    if (clientFd == -1) {
-        std::cerr << "Failed to accept new client\n";
-        return;
-    }
-
-    fcntl(clientFd, F_SETFL, O_NONBLOCK);
-
-    _fds[_nbClients].fd = clientFd;
-    _fds[_nbClients].events = POLLIN;
-    _nbClients++;
-    Client client(clientFd);
-    std::stringstream   ss;
-    ss << "temp_" << clientFd;
-    client.setClient(ss.str());
-    _clients[ss.str()] = client;
-    //Client client(_nbClients);
-    //_clients.push_back(client);
-}
-
-void    Server::clientRequest(int index){
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-
-    int bytesRead = recv(_fds[index].fd, buffer, sizeof(buffer) - 1, 0);
-    std::cout << "BYTESREAD- " << bytesRead << std::endl;
-    if (bytesRead <= 0)
-    {
-        Client* client = findClientByFd(_fds[index].fd);
-        if (client)
-        {
-            std::string nick = client->getNickname();
-            const std::vector<std::string>& channels = client->getChannels();
-            for (size_t i = 0; i < channels.size(); ++i)
-            {
-                Channel*    channel = findChannel(channels[i]);
-                if (channel)
-                {
-                    channel->removeMember(nick);
-                    std::string partMsg = ":" + nick + " PART " + channels[i];
-                    const std::vector<std::string>& members = channel->getMembers();
-                    for (size_t j = 0; j < members.size(); ++j)
-                    {
-                        Client* member = findClientByNick(members[j]);
-                        if (member)
-                            sendMessage(member->getFd(), partMsg);
-                    }
-                }
-            }
-            _clients.erase(nick.empty() ? client->getClient() : nick);
-        }
-        close(_fds[index].fd);
-        _fds[index].fd = -1;
-        std::cout << "Client disconnected\n";
-        return;
-    }
-
-    std::string message(buffer, bytesRead);
-
-    std::string::size_type pos = 0;
-    while ((pos = message.find("\r\n", pos)) != std::string::npos) {
-        message.replace(pos, 2, "!!");
-        pos += 2;
-    }
-
-    std::cout << "Raw cmd: [" << message << "]" << std::endl;
-
-    while (!message.empty() &&
-    (message[message.length() - 1] == '\r' || 
-    message[message.length() - 1] == '\n'))
-        message.erase(message.length() - 1, 1);
-
-    //std::cout << "Raw cmd: [" << message << "]" << std::endl;
-    if (message.size() >= 2 && message.substr(message.size() - 2) == "\r\n")
-
-        _input = Input(message);
-
-   // Client* client = findClientByFd(_fds[index].fd);
-/* 
-    if (client && !client->isRegistered())
-        process_login();
-    else */
-    executeCommand(index); 
-}
-
-void Server::executeCommand(int index){
-    std::string cmd = _input.getCommand();
-    const std::string commands[] = {
-        "INVITE", "JOIN", "KICK", "MODE", "NICK", "PART", "PASS", 
-        "PRIVMSG", "TOPIC", "USER"
-    };
-    void (Server::*handlers[])(int) = {
-    &Server::handleInvite,
-    &Server::handleJoin,
-    &Server::handleKick,
-    &Server::handleMode,
-    &Server::handleNick,
-    &Server::handlePart,
-    &Server::handlePass,
-    &Server::handlePrivmsg,
-    &Server::handleTopic,
-    &Server::handleUser,
-    };
-
-    const int commandCount = sizeof(commands) / sizeof(commands[0]);
-    for (int i = 0; i < commandCount; ++i){
-        if (commands[i] == cmd) {
-            (this->*handlers[i])(index);
-            return;
-        }
-    }
-
-    std::cerr << "Command not found" << std::endl;
-
-    Client* client = findClientByFd(_fds[_nbClients - 1].fd);
-
-    if (client)
-    {
-        std::string errMsg = ":" + _network_name + " 421 " + client->getNickname() + cmd + " :Unknown command";
-        sendMessage(client->getFd(), errMsg);
-    }
-}
-
-void    Server::process_login()
-=======
 void	Server::newClient()
->>>>>>> origin/Manuel
 {
 	sockaddr_storage	clientAddr;
 	socklen_t			clientLen = sizeof(clientAddr);
@@ -379,15 +248,6 @@ void	Server::process_login()
 //<<<<<<<<<<<<<<<<<<<<<<UTILS>>>>>>>>>>>>>>>>>>>>>>>>
 void Server::joinGreetings(int index)
 {
-<<<<<<< HEAD
- /*    std::string reply = Reply::RPL_WELCOME(_clients[index - 1], *this);
-    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
-    reply =  Reply::RPL_YOURHOST(_clients[index - 1], *this);
-    send(_fds[index].fd, reply.c_str(), reply.length(), 0);
-    reply =  Reply::RPL_CREATED(_clients[index - 1], *this);
-    send(_fds[index].fd, reply.c_str(), reply.length(), 0); */
-    (void)index;
-=======
 	Client*	client = findClientByFd(_fds[index].fd);
 
 	if (!client)
@@ -395,7 +255,6 @@ void Server::joinGreetings(int index)
 	sendMessage(_fds[index].fd, Reply::RPL_WELCOME(*client, *this));
 	sendMessage(_fds[index].fd, Reply::RPL_YOURHOST(*client, *this));
 	sendMessage(_fds[index].fd, Reply::RPL_CREATED(*client, *this));
->>>>>>> origin/Manuel
 }
  
 void	Server::setDateTime()
@@ -415,19 +274,6 @@ void	signalIgnore()
 	signal(SIGQUIT, SIG_IGN);
 }
 
-<<<<<<< HEAD
-void    Server::closeExit(){
-    _clients.clear();
-    _channels.clear();
-    _input.~Input();
-
-    if (_socketfd != -1)
-        close(_socketfd);
-
-    for (int i = 0; i <= _nbClients; ++i)
-        if (_fds[i].fd != -1)
-        close(_fds[i].fd);
-=======
 void	Server::closeExit()
 {
 	_clients.clear();
@@ -441,7 +287,6 @@ void	Server::closeExit()
 		if (_fds[i].fd != -1)
 			close(_fds[i].fd);
 	}
->>>>>>> origin/Manuel
 }
 
 void	handleSigint(int sig)
@@ -499,156 +344,3 @@ void	Server::sendMessage(int fd, const std::string& message)
 
 //<<<<<<<<<<<<<<<<<<<<<<EXECUTE COMMANDS/HANDLERS>>>>>>>>>>>>>>>>>>>>>>>>
 
-<<<<<<< HEAD
-void	Server::handleInvite(int)
-{
-	std::cout << "INVITE" << std::endl;
-}
-
-void	Server::handleJoin(int)
-{
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451: You have not registered!";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-	/* if (args.empty())
-	{
-		Errors::ERR_NEEDMOREPARAMS(*client, _input);
-		return ;
-	} 
- 	std::string	channelName = args[0];
-	if (channelName[0] != '#')
-		channelName = "#" + channelName;
-	std::string	key = args.size() > 1 ? args[1] : ""; 
-
-	Channel*	channel = findChannel(channelName);
-	if (!channel)
-	{
-		_channels[channelName] = Channel(channelName);
-		channel = findChannel(channelName);
-		channel->addMember(client->getNickname());
-		channel->addOperator(client->getNickname()); //the creator is the default operator
-	}
-	else
-	{
-		if (channel->getUserLimit() > 0 && static_cast<int>(channel->getMembers().size() >=channel->getUserLimit()))
-		{
-			Errors::ERR_CHANNELISFULL(*client, *channel);
-			return ;
-		}
-		if (channel->getInvite() && channel->isInvited(client->getNickname()))
-		{
-			Errors::ERR_INVITEONLYCHAN(*client, *channel);
-			return ;
-		}
-		if (channel->getKey() && key != channel->getKeyValue())
-		{
-			Errors::ERR_BADCHANNELKEY(*client, *channel);
-			return ;
-		}
-		if (!channel->addMember(client->getNickname()))
-		{
-			Errors::ERR_USERONCHANNEL(*client, *channel);
-			return ;
-		}
-	}
-
-	client->addChannel(channelName);
-	std::string	joinMsg = ":" + client->getNickname() + " JOIN " + channelName;
-
-	const std::vector<std::string>&	members = channel->getMembers();
-	for (size_t i = 0; i < members.size(); ++i)
-	{
-		Client*	member = findClientByNick(members[i]);
-		if (member)
-			sendMessage(member->getFd(), joinMsg);
-	}
-
-	if (channel->getTopic().empty())
-		Reply::RPL_NOTOPIC(*client, *channel);
-	else
-		Reply::RPL_TOPIC(*client, *channel);*/
-}
-
-void	Server::handleKick(int)
-{
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451: You have not registered!";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-
-	std::vector<std::string>	args = _input.getArgs();
-	if (args.size() < 2)
-	{
-		Errors::ERR_NEEDMOREPARAMS(*client, _input);
-		return ;
-	}
-
-	std::string	channelName = args[0];
-	if (channelName[0] != '#')
-		channelName = "#" + channelName;
-	std::string	targetNick = args[1];
-	std::string	reason = args.size() > 2 ? args[2] : "No reason";
-
-	Channel*	channel = findChannel(channelName);
-	if (!channel)
-	{
-		Errors::ERR_NOSUCHCHANNEL(*client, *channel);
-		return ;
-	}
-	if (!channel->isMember(client->getNickname()))
-	{
-		Errors::ERR_NOTONCHANNEL(*client, *channel);
-		return ;
-	}
-	if (!channel->isOperator(client->getNickname()))
-	{
-		Errors::ERR_CHANOPRIVSNEEDED(*client, *channel);
-		return ;
-	}
-	if (!channel->isMember(targetNick))
-	{
-		Errors::ERR_USERNOTINCHANNEL(*client, *channel);
-		return ;
-	}
-
-	channel->removeMember(targetNick);
-	Client*	target = findClientByNick(targetNick);
-	if (target)
-	{
-		target->removeChannel(channelName);
-		std::string	kickMsg = ":" + client->getNickname() + " KICK " + channelName + " "
-			+ targetNick + " :" + reason;
-		const std::vector<std::string>&	members = channel->getMembers();
-		for (size_t i = 0; i < members.size(); ++i)
-		{
-			Client*	member = findClientByNick(members[i]);
-			if (member)
-				sendMessage(member->getFd(), kickMsg);
-		}
-		sendMessage(target->getFd(), kickMsg);
-	}
-}
-
-void    Server::handleNick(int){}
-
-void    Server::handlePart(int){}
-
-void    Server::handlePass(int){}
-
-void    Server::handleUser(int){}
-
-void    Server::handleTopic(int){}
- void        Server::handleMode(int){}
-void    Server::handlePrivmsg(int){}
-=======
-
->>>>>>> origin/Manuel
