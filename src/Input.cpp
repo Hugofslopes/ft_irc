@@ -56,37 +56,52 @@ void Input::parseComponents() {
         std::transform(token.begin(), token.end(), token.begin(), ::toupper);
         _command = token;
     }
-    if (_command == "JOIN")
-		parseJoin(iss);
-    else if (_command == "INVITE")
-		parseInvite(iss);
-    else if (_command == "KICK")
-		parseKick(iss);
-    else if (_command == "MODE")
-		parseMode(iss);
-    else if (_command == "PASS")
-		parsePass(iss);
-    else if (_command == "NICK")
-		parseNick(iss);
-    else if (_command == "USER")
-		parseUser(iss);
-    else if (_command == "PART")
-		parsePart(iss);
-    else if (_command == "PRIVMSG")
-		parsePrivmsg(iss);
-    else if (_command == "TOPIC")
-		parseTopic(iss);
+ //    if (_command == "JOIN")
+	// 	parseJoin(iss);
+ //    else if (_command == "INVITE")
+	// 	parseInvite(iss);
+ //    else if (_command == "KICK")
+	// 	parseKick(iss);
+ //    else if (_command == "MODE")
+	// 	parseMode(iss);
+ //    else if (_command == "PASS")
+	// 	parsePass(iss);
+ //    else if (_command == "NICK")
+	// 	parseNick(iss);
+ //    else if (_command == "USER")
+	// 	parseUser(iss);
+ //    else if (_command == "PART")
+	// 	parsePart(iss);
+ //    else if (_command == "PRIVMSG")
+	// 	parsePrivmsg(iss);
+ //    else if (_command == "TOPIC")
+	// 	parseTopic(iss);
+	//
+	// //Dar handle de trailing das mensagens todas
+ //    std::string trailing;
+	//
+ //    if (std::getline(iss, trailing))
+	// {
+ //        if (!trailing.empty() && trailing[0] == ':')
+ //            _trailing = trailing.substr(1);
+ //        else if (!trailing.empty())
+ //            _trailing = trailing;
+ //    }
+	//
+	std::string		arg;
+	std::string		rest;
 
-	//Dar handle de trailing das mensagens todas
-    std::string trailing;
-
-    if (std::getline(iss, trailing))
+	while(iss >> arg)
 	{
-        if (!trailing.empty() && trailing[0] == ':')
-            _trailing = trailing.substr(1);
-        else if (!trailing.empty())
-            _trailing = trailing;
-    }
+		if (arg[0] == ':') {
+			_trailing = arg.substr(1);
+			std::getline(iss, rest);
+			_trailing += rest.empty() ? "" : " " + rest;
+			break ;
+		}
+		_args.push_back(arg);
+	}
+	validateBaseCommand();
 }
 
 //JOIN - <channel> [key]
