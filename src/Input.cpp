@@ -31,9 +31,9 @@ void Input::clear() {
 void Input::parseComponents() {
     std::string message = _raw;
 
-    //Limpar \r\n
-    while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
-        message.pop_back();
+    //Limpar \r\n -> versao atualizada cpp98
+    while (!message.empty() && (message[message.size() - 1] == '\r' || message[message.size() - 1] == '\n'))
+        message.erase(message.size() - 1);
 
     //Verificar ':' e indicar como prefixo!!
     if (!message.empty() && message[0] == ':')
@@ -172,9 +172,11 @@ void Input::validateBaseCommand() {
     _isValid = false;
     if (_command.empty())
 		return;
-
-    for (const auto &cmd : valid_commands) {
-        if (_command == cmd) {
+	
+	const size_t num_commands = sizeof(valid_commands) / sizeof(valid_commands[0]);
+	
+    for (size_t i = 0; i < num_commands; ++i) {
+        if (_command == valid_commands[i]) {
             _isValid = true;
             break;
         }
