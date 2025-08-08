@@ -50,11 +50,12 @@ class Input{
 	void	parseTopic(std::istringstream &iss);
 
     //GETTERS
-    const std::string	&getPrefix() const;
-    const std::string	&getCommand() const;
-	const std::string	&getTrailing() const;
-    bool				isValid() const;
-    const std::string	&getRaw() const;
+	const std::vector<std::string> 	&getArgs() const;
+    const std::string				&getPrefix() const;
+    const std::string				&getCommand() const;
+	const std::string				&getRaw() const;
+	const std::string				&getTrailing() const;
+    bool							isValid() const;
 
 	//Verificacao de mensagens parciais
 	bool isComplete(const std::string &message) const;
