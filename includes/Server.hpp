@@ -73,6 +73,8 @@ class Server
 		struct pollfd					_fds[1024];
 		int								_socketfd;
 
+		Input		_input;
+
 		void		setDateTime();
 		void		parsePort(std::string);
 		void		joinGreetings(int);
