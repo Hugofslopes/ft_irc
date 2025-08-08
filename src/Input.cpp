@@ -13,6 +13,7 @@ void Input::parse(const std::string &complete_message) {
 
 //da clear a tudo
 void Input::clear() {
+	_args.clear();
     _raw.clear();
     _prefix.clear();
     _command.clear();
