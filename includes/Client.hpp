@@ -3,6 +3,7 @@
 
 # include <iostream>
 # include <map>
+# include <string>
 # include <vector>
 # include <algorithm>
 
@@ -31,6 +32,7 @@ public:
 	std::string	getClient() const;
 	std::string	getUsername() const;
 	std::string	getNickname() const;
+	std::string	getPass() const;
 
 	int			getFd() const;
 
@@ -43,6 +45,7 @@ public:
 	void	setClient(const std::string& client);
 	void	setUsername(const std::string& username);
 	void	setNickname(const std::string& nick);
+	void	setPass(const std::string& pass);
 	void	setRegistered(bool status);
 	void	setOperator(const std::string& channel, bool status);
 
