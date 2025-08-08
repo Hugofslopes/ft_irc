@@ -241,7 +241,8 @@ void	Server::executeCommand(int index)
 
 	std::cerr << "Command not found" << std::endl;
 
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+	//Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
+	client = findClientByFd(_fds[_nbClients - 1].fd);
 
 	if (client)
 	{
