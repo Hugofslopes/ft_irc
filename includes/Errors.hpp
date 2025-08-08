@@ -6,6 +6,9 @@
 # include "Channel.hpp"
 # include <string>
 
+//Luigi: faltava declarar aqui
+class Client;
+
 namespace Errors
 {
 	std::string	ERR_ALREADYREGISTERED(const Client&);
