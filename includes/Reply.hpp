@@ -3,6 +3,7 @@
 
 # include "Client.hpp"
 # include "Server.hpp"
+class Client;
 
 class Server;
 namespace Reply{

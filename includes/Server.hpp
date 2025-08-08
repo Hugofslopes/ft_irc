@@ -39,8 +39,9 @@ class Server
 		void		run();
 		void		newClient();
 		void		clientRequest(int);
-		void		executeCommand();
-		void		process_login();
+		void		executeCommand(int index);
+		
+		void		processRegister(Client *client);
 
 		void		handleInvite();
 		void		handleJoin();
@@ -63,7 +64,6 @@ class Server
 
 		std::map<std::string, Client>	_clients;
 		std::map<std::string, Channel>	_channels;
-		Input							_input;
 		std::string						_network_name;
 		std::string						_version;
 		std::string						_StartTime;

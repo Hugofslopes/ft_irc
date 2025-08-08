@@ -6,17 +6,25 @@
 # include <string>
 # include <vector>
 # include <algorithm>
+# include "Input.hpp"
+# include "Server.hpp"
+
+class Server;
 
 class Client
 {
 private:
-	std::string	client;
-	std::string	username;
-	std::string	nick;
-	std::string	pass;
+	std::string					client;
+	std::string					username;
+	std::string					nick;
+	std::string					pass;
 
-	int		fd;
-	bool	registered;
+	std::string 				_partialMessage;
+    std::string 				_buffer;
+	Input						_input;
+
+	int							fd;
+	bool						registered;
 
 	std::map<std::string, bool>	operatorStatus;
 	std::vector<std::string>	channels;
@@ -28,16 +36,24 @@ public:
 	Client(const Client&);
 	~Client();
 
+	//INPUT
+	Input&			getInput();
+    const Input&	getInput() const;
+	void			appendPartialMessage(const std::string &message);
+	void			clearInput();
+	bool			processMessage(const std::string &message);
+	bool			processInitialCommands(Server&);
+
 	//Getters
-	std::string	getClient() const;
-	std::string	getUsername() const;
-	std::string	getNickname() const;
-	std::string	getPass() const;
+	std::string		getClient() const;
+	std::string		getUsername() const;
+	std::string		getNickname() const;
+	std::string		getPass() const;
 
-	int			getFd() const;
+	int				getFd() const;
 
-	bool		isRegistered() const;
-	bool		isOperator(const std::string& channel) const;
+	bool			isRegistered() const;
+	bool			isOperator(const std::string& channel) const;
 
 	const std::vector<std::string>&	getChannels() const;
 

@@ -1,13 +1,9 @@
 #include "../includes/Client.hpp"
 #include <string>
 
-Client::Client() : fd(-1), registered(false)
-{
-}
+Client::Client() : fd(-1), registered(false){}
 
-Client::Client(int fd) : fd(fd), registered(false)
-{
-}
+Client::Client(int fd) : fd(fd), registered(false){}
 
 Client::Client(const Client &other)
 {
@@ -129,4 +125,54 @@ void	Client::removeChannel(const std::string &channel)
 		channels.erase(it);
 		operatorStatus.erase(channel);
 	}
+}
+
+//IN PROGRESS
+//ONLY IF CLIENT IS NOT REGISTERED
+bool	Client::processInitialCommands(Server& serv) {
+
+	size_t pos;
+
+	while ((pos = _buffer.find("\r\n")) != std::string::npos)
+	{
+		std::string cmd = _buffer.substr(0, pos);
+		_buffer.erase(0, pos + 2);
+
+		_input.parse(cmd);
+		if (!_input.isValid())
+			return false;
+
+		//does this makes sense...? Acho que deveria inicializar no parser e depois executa (?)
+		if (_input.getCommand() == "PASS")
+			serv.handlePass();
+		else if (_input.getCommand() == "NICK")
+			serv.handleNick();
+		else if (_input.getCommand() == "USER")
+			serv.handleUser();
+
+		registered = true;
+		return true;
+	}
+	return false;
+}
+
+void Client::clearInput() {
+	return _input.clear();
+}
+
+const Input& Client::getInput() const {
+	return _input; 
+}
+
+Input&	Client::getInput() { 
+	return _input; 
+}
+
+void	Client::appendPartialMessage(const std::string &message){
+	(void)message;
+}
+
+bool	Client::processMessage(const std::string &message){
+	(void)message;
+	return true;
 }

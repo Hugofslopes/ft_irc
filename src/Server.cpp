@@ -144,8 +144,6 @@ void	Server::newClient()
 	ss << "temp_" << clientFd;
 	client.setClient(ss.str());
 	_clients[ss.str()] = client;
-	//Client client(_nbClients);
-	//_clients.push_back(client);
 }
 
 void	Server::clientRequest(int index)
@@ -155,9 +153,9 @@ void	Server::clientRequest(int index)
 
 	int	bytesRead = recv(_fds[index].fd, buffer, sizeof(buffer) - 1, 0);
 	std::cout << "BYTESREAD- " << bytesRead << std::endl;
+	Client*	client = findClientByFd(_fds[index].fd);
 	if (bytesRead <= 0)
 	{
-		Client*	client = findClientByFd(_fds[index].fd);
 		if (client)
 		{
 			std::string	nick = client->getNickname();
@@ -186,20 +184,32 @@ void	Server::clientRequest(int index)
 		return ;
 	}
 
-	std::string	message(buffer, bytesRead);
-	std::cout << "MESSAGE- " << message << std::endl;
-	_input = Input(message);
-	Client*	client = findClientByFd(_fds[index].fd);
+	//dar handle a esse message
+	//HABEMUS PARSERR!!!!!!!
+    std::string message(buffer, bytesRead);
 
-	if (client && !client->isRegistered())
-		process_login();
-	else
-		executeCommand();
+	if (!client->isRegistered())
+		processRegister(client);
+	else if (client->processMessage(message))
+	{
+		executeCommand(index);
+		client->clearInput();
+	}
 }
 
-void	Server::executeCommand()
+void	Server::processRegister(Client *client) {
+	if (client->processInitialCommands(*this))
+		client->setRegistered(true);
+}
+
+void	Server::executeCommand(int index)
 {
-	std::string	cmd = _input.getCommand();
+	Client *client = findClientByFd(_fds[index].fd);
+	if (!client)
+		return;
+
+	const Input &input = client->getInput();
+	std::string cmd = input.getCommand();
 	const std::string	commands[] = {
 		"INVITE", "JOIN", "KICK", "MODE", "NICK", "PART", "PASS", 
 		"PRIVMSG", "TOPIC", "USER"
@@ -240,10 +250,6 @@ void	Server::executeCommand()
 	}
 }
 
-void	Server::process_login()
-{
-	//TODO: Luigi: trigger joinGreetings when client is registered: PASS, NICK, USER
-}
 
 //<<<<<<<<<<<<<<<<<<<<<<UTILS>>>>>>>>>>>>>>>>>>>>>>>>
 void Server::joinGreetings(int index)
@@ -256,7 +262,7 @@ void Server::joinGreetings(int index)
 	sendMessage(_fds[index].fd, Reply::RPL_YOURHOST(*client, *this));
 	sendMessage(_fds[index].fd, Reply::RPL_CREATED(*client, *this));
 }
- 
+
 void	Server::setDateTime()
 {
 	time_t now = time(0);
