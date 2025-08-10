@@ -10,12 +10,12 @@ class Channel
 {
 private:
 	std::string	_name;
-	std::string	_topic;
 	bool		_key;
 	std::string	_keyValue;
 	bool		_invite;
 	bool		_topicRestricted;
 	int			_userLimit;
+	std::string	_topic;
 
 	std::vector<std::string>	_members;
 	std::vector<std::string>	_operators;

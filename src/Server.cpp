@@ -195,11 +195,15 @@ void	Server::clientRequest(int index)
 		processRegister(client, message);
 	else{
 		client->_input.processInput(message);
-		if (client->_input.getRaw().find("\n") != std::string::npos)
-			args = client->_input.process_args();
+		if (client->_input.getRaw().find("\n") != std::string::npos){
+			while (!client->_input.getRaw().empty()){
+				args = client->_input.process_args();
+				processRegister2(client, args);
+				executeCommand(client, args);
+			}
+		}
 		else
 			return;
-		executeCommand(client, args);
 	}
 }
 
@@ -219,6 +223,7 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 	&Server::handlePart,
 	&Server::handlePrivmsg,
 	&Server::handleTopic,
+	&Server::handleWho,
 	};
 
 	const int	commandCount = sizeof(commands) / sizeof(commands[0]);
@@ -237,16 +242,12 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 
 
 //<<<<<<<<<<<<<<<<<<<<<<UTILS>>>>>>>>>>>>>>>>>>>>>>>>
-void Server::joinGreetings(int index)
+void Server::joinGreetings(Client *client)
 {
-	Client*	client = findClientByFd(_fds[index].fd);
-
-	if (!client)
-		return ;
-	sendMessage(_fds[index].fd, Reply::RPL_WELCOME(*client, *this));
-	sendMessage(_fds[index].fd, Reply::RPL_YOURHOST(*client, *this));
-	sendMessage(_fds[index].fd, Reply::RPL_CREATED(*client, *this));
-	sendMessage(_fds[index].fd, Reply::RPL_MYINFO(*client, *this));
+	sendMessage(client->getFd(), Reply::RPL_WELCOME(*client, *this));
+	sendMessage(client->getFd(), Reply::RPL_YOURHOST(*client, *this));
+	sendMessage(client->getFd(), Reply::RPL_CREATED(*client, *this));
+	sendMessage(client->getFd(), Reply::RPL_MYINFO(*client, *this));
 }
 
 void	Server::setDateTime()

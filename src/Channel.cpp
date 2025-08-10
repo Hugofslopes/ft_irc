@@ -1,13 +1,10 @@
 #include "../includes/Channel.hpp"
 
-Channel::Channel()
-	: _key(false), _invite(false), _topicRestricted(false), _userLimit(0)
-{
-}
+Channel::Channel() : _key(false), _invite(false), _topicRestricted(false), 
+_userLimit(0), _topic("default"){}
 
-Channel::Channel(const std::string& name) : _name(name), _key(false), _invite(false), _topicRestricted(false), _userLimit(0)
-{
-}
+Channel::Channel(const std::string& name) : _name(name), _key(false), _invite(false),
+_topicRestricted(false), _userLimit(0), _topic("default"){}
 
 Channel::Channel(const Channel &other)
 {
@@ -97,7 +94,7 @@ const std::vector<std::string>&	Channel::getInvited() const
 
 bool	Channel::addMember(const std::string& nick)
 {
-	if (isMember(nick))
+	if (!isMember(nick))
 	{
 		_members.push_back(nick);
 		return (true);

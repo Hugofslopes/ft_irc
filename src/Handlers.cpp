@@ -51,15 +51,14 @@ void	Server::handleInvite(Client *client, std::vector<std::string> args)
 
 void	Server::handleJoin(Client *client, std::vector<std::string> args)
 {
-	if (args.empty())
+	if (args.empty() || args[1].empty())
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
 	std::string	channelName = args[1];
-	if (channelName[0] != '#')
-		channelName = "#" + channelName;
+	
 	std::string	key = args.size() > 2 ? args[2] : "";
 
 	Channel*	channel = findChannel(channelName);
@@ -107,7 +106,10 @@ void	Server::handleJoin(Client *client, std::vector<std::string> args)
 			sendMessage(member->getFd(), joinMsg);
 	}
 
-	sendMessage(client->getFd(),Reply::RPL_JOIN(*client,*channel));
+	sendMessage(client->getFd(),Reply::RPL_JOINEDCHA(*client,*channel));
+	sendMessage(client->getFd(),Reply::RPL_JOINEDCHATOPIC(*this,*client,*channel));
+	sendMessage(client->getFd(),Reply::RPL_NAMREPLY(*client,*channel));
+	sendMessage(client->getFd(),Reply::RPL_ENDOFNAMES(*client,*channel));
 
 	/* if (channel->getTopic().empty())
 		sendMessage(client->getFd(), Reply::RPL_NOTOPIC(*client, *channel));
@@ -180,7 +182,9 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 	std::string	channelName = args[1];
 	if (channelName[0] != '#')
 		channelName = "#" + channelName;
-	std::string	modeStr = args.size() > 1 ? args[2] : "";
+	std::string	modeStr;
+	if (args.size() > 2)
+		modeStr = args.size() > 1 ? args[2] : "";
 
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
@@ -286,12 +290,12 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 	}
 }
 
-void    Server::handleNick(Client *client, std::vector<std::string> args)
+int   Server::handleNick(Client *client, std::vector<std::string> args)
 {
 	if (args.empty())
 	{
 		sendMessage(client->getFd(), Errors::ERR_NONICKNAMEGIVEN(*client));
-		return ;
+		return 1;
 	}
 
 	std::string	newNick = args[1];
@@ -299,13 +303,13 @@ void    Server::handleNick(Client *client, std::vector<std::string> args)
 	if (newNick.empty() || isdigit(newNick[0]) || newNick.find_first_of(" ,*?!@.#&") != std::string::npos)
 	{
 		sendMessage(client->getFd(), Errors::ERR_ERRONEUSNICKNAME(*client));
-		return ;
+		return 1;
 	}
-
+	std::cout << newNick << "    " << findClientByNick(newNick) << std::endl;
 	if (findClientByNick(newNick))
 	{
 		sendMessage(client->getFd(), Errors::ERR_NICKNAMEINUSE(*client));
-		return ;
+		return 1;
 	}
 	
 	std::string oldNick = client->getNickname().empty() ? client->getClient() : client->getNickname();
@@ -343,9 +347,7 @@ void    Server::handleNick(Client *client, std::vector<std::string> args)
 		identity = oldNick;
 	std::string nickMsg = ":" + identity + " NICK :" + newNick + "\r\n";
 	sendMessage(client->getFd(), nickMsg);
-
-	std::cout << " O VELOH " <<oldNick << std::endl;
-	std::cout << " O novo " << client->getNickname() << std::endl;
+	return 0;
 }
 
 void    Server::handlePart(Client *client, std::vector<std::string> args)
@@ -385,25 +387,26 @@ void    Server::handlePart(Client *client, std::vector<std::string> args)
 	sendMessage(client->getFd(), partMsg);
 }
 
-void    Server::handlePass(Client *client, std::vector<std::string> args)
+int    Server::handlePass(Client *client, std::vector<std::string> args)
 {
 	if (args.empty())
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
-		return ;
+		return 1;
 	}
 	if (client->isRegistered())
 	{
 		sendMessage(client->getFd(), Errors::ERR_ALREADYREGISTERED(*client));
-		return ;
+		return 1;
 	}
 	if (args[1] != _password)
 	{
 		sendMessage(client->getFd(), Errors::ERR_PASSWDMISMATCH(*client));
-		return ;
+		return 1;
 	}
 
 	client->setPass(args[1]);
+	return 0;
 }
 
 void    Server::handleTopic(Client *client, std::vector<std::string> args)
@@ -465,8 +468,8 @@ void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 		return ;
 	}
 
-	std::string	target = args[0];
-	std::string	message = args[1];
+	std::string	target = args[1];
+	std::string	message = args[2];
 	if (message[0] == ':')
 		message.erase(0, 1);
 
@@ -508,23 +511,39 @@ void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 	}
 }
 
-void    Server::handleUser(Client *client, std::vector<std::string> args)
+int    Server::handleUser(Client *client, std::vector<std::string> args)
 {
 	if (args.size() < 4)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, client->_input));
-		return ;
+		return 1;
 	}
 	if (client->isRegistered())
 	{
 		sendMessage(client->getFd(), Errors::ERR_ALREADYREGISTERED(*client));
-		return ;
+		return 1;
 	}
 
 	std::string	username = args[1];
 	//Don't forget to ignore hostname and servername(args[1] and args[2]), use realname (args[3])
 	client->setUsername(username);
+	return 0;
+}
+void    Server::handleWho(Client *client, std::vector<std::string> args)
+{
+	if (args.size() < 2)
+	{
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
+		return ;
+	}
 
-	if (!client->getNickname().empty() && !client->getPass().empty())
-		joinGreetings(_nbClients - 1);
+	Channel*	channel = findChannel(args[1]);
+	if (!channel)
+	{
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		return ;
+	}
+
+	sendMessage(client->getFd(), Reply::RPL_WHO_REPLY(*this,*channel,*client));
+	sendMessage(client->getFd(), Reply::RPL_WHO_END_REPLY(*this,*channel,*client));
 }

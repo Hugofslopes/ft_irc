@@ -22,29 +22,25 @@ void Input::processInput(std::string in){
         _raw += in;
 }
 
-std::vector<std::string> Input::process_args()
-{
-    std::vector<std::string> tmp;
+std::vector<std::string> Input::process_args() {
+    std::vector<std::string> result;
     std::istringstream iss(_raw);
-    std::string word;
+    std::string line;
 
-    while (iss >> word) {
-        _args.push_back(word);
-    }
-
-    tmp = _args;
-    if (!tmp.empty()) {
-        const std::string& last = tmp.back();
-        if (last == "\n" || last == "\r\n") {
-            tmp.pop_back();
+    if (std::getline(iss, line)) {
+        std::istringstream lineStream(line);
+        std::string word;
+        while (lineStream >> word) {
+            result.push_back(word);
         }
+
+        size_t eraseLen = line.length();
+        if (_raw.length() > eraseLen && (_raw[eraseLen] == '\r' || _raw[eraseLen] == '\n')) {
+            eraseLen += (_raw[eraseLen] == '\r' && _raw[eraseLen + 1] == '\n') ? 2 : 1;
+        }
+        _raw.erase(0, eraseLen);
     }
-    for (std::vector<std::string>::const_iterator it = 
-        tmp.begin(); it != tmp.end(); ++it) {
-        std::cout << *it << std::endl;
-    }
-    clear();
-    return tmp;
+    return result;
 }
 
 std::string Input::getRaw()

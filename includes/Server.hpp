@@ -59,32 +59,34 @@ class Server
 
 		void		setDateTime();
 		void		parsePort(std::string);
-		void		joinGreetings(int);
+		void		joinGreetings(Client*);
 
-		Client*		findClientByFd(int fd);
-		Client*		findClientByNick(const std::string& nick);
-		Channel*	findChannel(const std::string& name);
-		void		sendMessage(int fd, const std::string& message);
-		void		removeFromReg(Client *client);
-		void		processInitialCommands(Client *client,std::vector<std::string> args);
+		Client*		findClientByFd(int);
+		Client*		findClientByNick(const std::string&);
+		Channel*	findChannel(const std::string&);
+		void		sendMessage(int, const std::string&);
+		void		removeFromReg(Client *);
+		void		processInitialCommands(Client *,std::vector<std::string>);
 		void		newClient();
-		void		removeClient(Client *client, int index);
+		void		removeClient(Client *, int);
 		void		clientRequest(int);
-		void		executeCommand(Client *client, std::vector<std::string> args);
+		void		executeCommand(Client *, std::vector<std::string>);
 		
-		void		processRegister(Client *client, std::string msg);
+		void		processRegister(Client *, std::string);
+		void		processRegister2(Client *, std::vector<std::string>);
 
-		void		handleInvite(Client *client, std::vector<std::string> args);
-		void		handleJoin(Client *client, std::vector<std::string> args);
-		void		handleKick(Client *client, std::vector<std::string> args);
-		void		handleMode(Client *client, std::vector<std::string> args);
-		void		handleNick(Client *client, std::vector<std::string> args);
-		void		handlePart(Client *client, std::vector<std::string> args);
-		void		handlePass(Client *client, std::vector<std::string> args);
-		void		handleTopic(Client *client, std::vector<std::string> args);
-		void		handlePrivmsg(Client *client, std::vector<std::string> args);
-		void		handleUser(Client *client, std::vector<std::string> args);
-		void 		handleAllCredenti(Client *client, std::vector<std::string> args);
+		void		handleInvite(Client *, std::vector<std::string>);
+		void		handleJoin(Client *, std::vector<std::string>);
+		void		handleKick(Client *, std::vector<std::string>);
+		void		handleMode(Client *, std::vector<std::string>);
+		int			handleNick(Client *, std::vector<std::string>);
+		void		handlePart(Client *, std::vector<std::string>);
+		int			handlePass(Client *, std::vector<std::string>);
+		void		handleTopic(Client *, std::vector<std::string>);
+		void		handlePrivmsg(Client *, std::vector<std::string>);
+		int			handleUser(Client *, std::vector<std::string>);
+		void 		handleAllCredenti(Client *, std::vector<std::string>);
+		void		handleWho(Client *, std::vector<std::string>);
 	};
 extern Server*	instance;
 
