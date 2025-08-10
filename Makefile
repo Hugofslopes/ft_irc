@@ -4,7 +4,8 @@ CXX = c++
 INCLUDES = -I includes
 SRC_DIR = src
 OBJ_DIR = obj
-SRC =  main.cpp Channel.cpp Client.cpp Input.cpp Reply.cpp Errors.cpp Server.cpp Handlers.cpp
+SRC =  main.cpp Channel.cpp Client.cpp Input.cpp Reply.cpp \
+Errors.cpp Server.cpp Handlers.cpp RegistClient.cpp
 SRCS = $(addprefix $(SRC_DIR)/, $(SRC))
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 NAME = ircserv

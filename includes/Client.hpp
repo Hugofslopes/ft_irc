@@ -18,14 +18,9 @@ private:
 	std::string					username;
 	std::string					nick;
 	std::string					pass;
-
-	std::string 				_partialMessage;
-    std::string 				_buffer;
-	Input						_input;
-
 	int							fd;
 	bool						registered;
-
+	bool						_startReg;
 	std::map<std::string, bool>	operatorStatus;
 	std::vector<std::string>	channels;
 
@@ -37,18 +32,14 @@ public:
 	~Client();
 
 	//INPUT
-	Input&			getInput();
-    const Input&	getInput() const;
-	void			appendPartialMessage(const std::string &message);
-	void			clearInput();
-	bool			processMessage(const std::string &message);
-	bool			processInitialCommands(Server&);
+	Input						_input;
 
 	//Getters
 	std::string		getClient() const;
 	std::string		getUsername() const;
 	std::string		getNickname() const;
 	std::string		getPass() const;
+	bool			getStartReg() const;
 
 	int				getFd() const;
 
@@ -64,6 +55,7 @@ public:
 	void	setPass(const std::string& pass);
 	void	setRegistered(bool status);
 	void	setOperator(const std::string& channel, bool status);
+	void	setStartReg(bool);
 
 	void	addChannel(const std::string& channel);
 	void	removeChannel(const std::string& channel);

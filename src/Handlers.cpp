@@ -4,21 +4,11 @@
 #include "../includes/Reply.hpp"
 #include "../includes/Errors.hpp"
 
-void	Server::handleInvite()
+void	Server::handleInvite(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + "451: You have not registered";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.size() < 2)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
@@ -59,28 +49,18 @@ void	Server::handleInvite()
 	sendMessage(client->getFd(), inviteMsg);
 }
 
-void	Server::handleJoin()
+void	Server::handleJoin(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451: You have not registered!";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
-		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
-	std::string	channelName = args[0];
+	std::string	channelName = args[1];
 	if (channelName[0] != '#')
 		channelName = "#" + channelName;
-	std::string	key = args.size() > 1 ? args[1] : "";
+	std::string	key = args.size() > 2 ? args[2] : "";
 
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
@@ -115,37 +95,31 @@ void	Server::handleJoin()
 	}
 
 	client->addChannel(channelName);
+
+	std::cout << "Este e o meu fd" << client->getFd() <<" este e o meu nick " <<client->getNickname()<< std::endl;
 	std::string	joinMsg = ":" + client->getNickname() + " JOIN " + channelName;
 
 	const std::vector<std::string>&	members = channel->getMembers();
 	for (size_t i = 0; i < members.size(); ++i)
 	{
 		Client*	member = findClientByNick(members[i]);
-		if (member)
+		if (member && member != client)
 			sendMessage(member->getFd(), joinMsg);
 	}
 
-	if (channel->getTopic().empty())
+	sendMessage(client->getFd(),Reply::RPL_JOIN(*client,*channel));
+
+	/* if (channel->getTopic().empty())
 		sendMessage(client->getFd(), Reply::RPL_NOTOPIC(*client, *channel));
 	else
-		sendMessage(client->getFd(), Reply::RPL_TOPIC(*client, *channel));
+		sendMessage(client->getFd(), Reply::RPL_TOPIC(*client, *channel)); */
 }
 
-void	Server::handleKick()
+void	Server::handleKick(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451: You have not registered!";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.size() < 2)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
@@ -195,27 +169,18 @@ void	Server::handleKick()
 	}
 }
 
-void	Server::handleMode()
+void	Server::handleMode(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
-		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
-	std::string	channelName = args[0];
+	std::string	channelName = args[1];
 	if (channelName[0] != '#')
 		channelName = "#" + channelName;
-	std::string	modeStr = args.size() > 1 ? args[1] : "";
+	std::string	modeStr = args.size() > 1 ? args[2] : "";
 
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
@@ -240,8 +205,7 @@ void	Server::handleMode()
 			modes += "k";
 		if (channel->getUserLimit() > 0)
 			modes += "l";
-		std::string	modeMsg = ":" + _network_name + " 324 " + client->getNickname()
-			+ " " + channelName + " " + modes;
+		std::string	modeMsg = "324 " + client->getNickname() + ' ' + channel->getName() + ' ' + modes;
 		sendMessage(client->getFd(), modeMsg);
 		return ;
 	}
@@ -322,20 +286,15 @@ void	Server::handleMode()
 	}
 }
 
-void    Server::handleNick()
+void    Server::handleNick(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-	if (!client)
-		return ;
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
 		sendMessage(client->getFd(), Errors::ERR_NONICKNAMEGIVEN(*client));
 		return ;
 	}
 
-	std::string	newNick = args[0];
+	std::string	newNick = args[1];
 	// Validate nickname
 	if (newNick.empty() || isdigit(newNick[0]) || newNick.find_first_of(" ,*?!@.#&") != std::string::npos)
 	{
@@ -348,12 +307,11 @@ void    Server::handleNick()
 		sendMessage(client->getFd(), Errors::ERR_NICKNAMEINUSE(*client));
 		return ;
 	}
-
-	std::string	oldNick = client->getNickname().empty() ? client->getClient() : client->getNickname();
-	client->setNickname(newNick);
-	Client	tempClient = *client;
+	
+	std::string oldNick = client->getNickname().empty() ? client->getClient() : client->getNickname();
 	_clients.erase(oldNick);
-	_clients[newNick] = tempClient;
+	client->setNickname(newNick);
+	_clients[newNick] = client;
 
 	const std::vector<std::string>&	channels = client->getChannels();
 	for (size_t i = 0; i < channels.size(); ++i)
@@ -378,28 +336,23 @@ void    Server::handleNick()
 			}
 		}
 	}
+	std::string identity;
+	if (client->getUsername().empty())
+		identity = oldNick + "!" + client->getNickname()+ "@localhost";
+	else
+		identity = oldNick;
+	std::string nickMsg = ":" + identity + " NICK :" + newNick + "\r\n";
+	sendMessage(client->getFd(), nickMsg);
 
-	if (!oldNick.empty() && oldNick != client->getClient())
-	{
-		std::string	nickMsg = ":" + oldNick + " NICK " + newNick;
-		sendMessage(client->getFd(), nickMsg);
-	}
+	std::cout << " O VELOH " <<oldNick << std::endl;
+	std::cout << " O novo " << client->getNickname() << std::endl;
 }
 
-void    Server::handlePart()
+void    Server::handlePart(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
-		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
@@ -432,16 +385,11 @@ void    Server::handlePart()
 	sendMessage(client->getFd(), partMsg);
 }
 
-void    Server::handlePass()
+void    Server::handlePass(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-	if (!client)
-		return ;
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
-		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 	if (client->isRegistered())
@@ -449,29 +397,20 @@ void    Server::handlePass()
 		sendMessage(client->getFd(), Errors::ERR_ALREADYREGISTERED(*client));
 		return ;
 	}
-	if (args[0] != _password)
+	if (args[1] != _password)
 	{
 		sendMessage(client->getFd(), Errors::ERR_PASSWDMISMATCH(*client));
 		return ;
 	}
 
-	client->setPass(args[0]);
+	client->setPass(args[1]);
 }
 
-void    Server::handleTopic()
+void    Server::handleTopic(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.empty())
 	{
-		Errors::ERR_NEEDMOREPARAMS(*client, _input);
+		Errors::ERR_NEEDMOREPARAMS(*client,  client->_input);
 		return ;
 	}
 
@@ -518,21 +457,11 @@ void    Server::handleTopic()
 	}
 }
 
-void    Server::handlePrivmsg()
+void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-
-	if (!client || !client->isRegistered())
-	{
-		std::string	errMsg = ":" + _network_name + " 451 :You have not registered";
-		sendMessage(_fds[_nbClients - 1].fd, errMsg);
-		return ;
-	}
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.size() < 2)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
@@ -579,17 +508,11 @@ void    Server::handlePrivmsg()
 	}
 }
 
-void    Server::handleUser()
+void    Server::handleUser(Client *client, std::vector<std::string> args)
 {
-	Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-
-	if (!client)
-		return ;
-
-	std::vector<std::string>	args = _input.getArgs();
 	if (args.size() < 4)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, _input));
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, client->_input));
 		return ;
 	}
 	if (client->isRegistered())
@@ -598,10 +521,9 @@ void    Server::handleUser()
 		return ;
 	}
 
-	std::string	username = args[0];
+	std::string	username = args[1];
 	//Don't forget to ignore hostname and servername(args[1] and args[2]), use realname (args[3])
 	client->setUsername(username);
-	client->setRegistered(true);
 
 	if (!client->getNickname().empty() && !client->getPass().empty())
 		joinGreetings(_nbClients - 1);

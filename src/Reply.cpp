@@ -39,10 +39,11 @@ namespace Reply
 
 	std::string	RPL_WELCOME(const Client& client, const Server& server)
 	{
-		std::string	str = client.getClient();
-		str += " :Welcome to the ";
+		std::string	str = "001 ";
+		str += client.getNickname();
+		str += " :Welcome to ";
 		str += server.getName();
-		str += " Network, ";
+		str += " network, ";
 		str += client.getNickname() ;
 		str += "\r\n";
 
@@ -51,21 +52,33 @@ namespace Reply
 
 	std::string	RPL_YOURHOST(const Client& client, const Server& server)
 	{
-		std::string	str = client.getClient();
-		str += " :Your host is ";
+		std::string	str =  "002 :Your host is ";
 		str += server.getName();
 		str += ", running version ";
 		str += server.getVersion();
 		str += "\r\n";
-
+		(void)client;
 		return (str);
 	}
 
 	std::string	RPL_CREATED(const Client& client, const Server& server)
 	{
-		std::string	str = client.getClient();
-		str += " :This server was created ";
+		std::string	str = "003 :This server was created ";
 		str += server.getStTime();
+		str += "\r\n";
+		(void)client;
+
+		return str;
+	}
+
+	std::string	RPL_MYINFO(const Client& client, const Server& server)
+	{
+		std::string	str =server.getName();
+		str += " 004 ";
+		str += client.getNickname();
+		str += ' ';
+		str += server.getVersion();
+		str += " :Available user modes: io, channel modes: tkl";
 		str += "\r\n";
 
 		return str;
@@ -73,7 +86,7 @@ namespace Reply
 
     std::string RPL_JOIN(const Client& client, const Channel& ch){
         std::string str = 
-        (":" + client.getNickname() + "!user@host JOIN " + ch.getName() + "\r\n" +
+        (":" + client.getNickname() + "!" + client.getUsername() + "@localhost JOIN " + ch.getName() + "\r\n" +
         "Now talking on #" +  ch.getName() + "\r\n" +
         "Topic for #" + ch.getName() + " is: " + ch.getTopic() + "\r\n");
         return str;

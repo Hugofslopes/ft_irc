@@ -112,7 +112,7 @@ void	Server::run()
 			{
 				if (_fds[i].fd == _socketfd)
 				{
-					std::cout <<"NEW"<< std::endl;
+					std::cout <<"New cliente"<< std::endl;
 					newClient();
 				}
 				else
@@ -139,11 +139,37 @@ void	Server::newClient()
 	_fds[_nbClients].fd = clientFd;
 	_fds[_nbClients].events = POLLIN;
 	_nbClients++;
-	Client	client(clientFd);
+	Client* client = new Client(clientFd);
 	std::stringstream	ss;
 	ss << "temp_" << clientFd;
-	client.setClient(ss.str());
-	_clients[ss.str()] = client;
+	client->setClient(ss.str());
+	_clients[ss.str()] = client; 
+}
+
+void Server::removeClient(Client *client, int index)
+{
+	std::string	nick = client->getNickname();
+		const std::vector<std::string>&	channels = client->getChannels();
+		for (size_t i = 0; i < channels.size(); ++i)
+		{
+			Channel*	channel = findChannel(channels[i]);
+			if (channel)
+			{
+				channel->removeMember(nick);
+				std::string	partMsg = ":" + nick + " PART " + channels[i];
+				const std::vector<std::string>&	members = channel->getMembers();
+				for (size_t j = 0; j < members.size(); ++j)
+				{
+					Client*	member = findClientByNick(members[j]);
+					if (member)
+						sendMessage(member->getFd(), partMsg);
+				}
+			}
+		}
+		_clients.erase(nick.empty() ? client->getClient() : nick);
+		close(_fds[index].fd);
+		_fds[index].fd = -1;
+		std::cout << "Client disconnected\n";
 }
 
 void	Server::clientRequest(int index)
@@ -152,103 +178,61 @@ void	Server::clientRequest(int index)
 	memset(buffer, 0, sizeof(buffer));
 
 	int	bytesRead = recv(_fds[index].fd, buffer, sizeof(buffer) - 1, 0);
-	std::cout << "BYTESREAD- " << bytesRead << std::endl;
+	std::cout << "BYTESREAD- " << bytesRead << " FDS " << _fds[index].fd << 
+	" index " << index << std::endl;
+	std::cout << "BUFFER[" <<buffer <<']'<< std::endl;
 	Client*	client = findClientByFd(_fds[index].fd);
 	if (bytesRead <= 0)
 	{
-		if (client)
-		{
-			std::string	nick = client->getNickname();
-			const std::vector<std::string>&	channels = client->getChannels();
-			for (size_t i = 0; i < channels.size(); ++i)
-			{
-				Channel*	channel = findChannel(channels[i]);
-				if (channel)
-				{
-					channel->removeMember(nick);
-					std::string	partMsg = ":" + nick + " PART " + channels[i];
-					const std::vector<std::string>&	members = channel->getMembers();
-					for (size_t j = 0; j < members.size(); ++j)
-					{
-						Client*	member = findClientByNick(members[j]);
-						if (member)
-							sendMessage(member->getFd(), partMsg);
-					}
-				}
-			}
-			_clients.erase(nick.empty() ? client->getClient() : nick);
-		}
-		close(_fds[index].fd);
-		_fds[index].fd = -1;
-		std::cout << "Client disconnected\n";
+		removeClient(client, index);
 		return ;
 	}
 
-	//dar handle a esse message
-	//HABEMUS PARSERR!!!!!!!
     std::string message(buffer, bytesRead);
-
+	std::vector<std::string> args;
+	
 	if (!client->isRegistered())
-		processRegister(client);
-	else if (client->processMessage(message))
-	{
-		executeCommand(index);
-		client->clearInput();
+		processRegister(client, message);
+	else{
+		client->_input.processInput(message);
+		if (client->_input.getRaw().find("\n") != std::string::npos)
+			args = client->_input.process_args();
+		else
+			return;
+		executeCommand(client, args);
 	}
 }
 
-void	Server::processRegister(Client *client) {
-	if (client->processInitialCommands(*this))
-		client->setRegistered(true);
-}
-
-void	Server::executeCommand(int index)
+void	Server::executeCommand(Client *client, std::vector<std::string> args)
 {
-	Client *client = findClientByFd(_fds[index].fd);
-	if (!client)
-		return;
-
-	const Input &input = client->getInput();
-	std::string cmd = input.getCommand();
+	std::string cmd = args[0];
 	const std::string	commands[] = {
-		"INVITE", "JOIN", "KICK", "MODE", "NICK", "PART", "PASS", 
-		"PRIVMSG", "TOPIC", "USER"
+		"INVITE", "JOIN", "KICK", "MODE", "PART",
+		"PRIVMSG", "TOPIC",
 	};
 
-	void	(Server::*handlers[])() = {
+	void	(Server::*handlers[])(Client *client, std::vector<std::string> args) = {
 	&Server::handleInvite,
 	&Server::handleJoin,
 	&Server::handleKick,
 	&Server::handleMode,
-	&Server::handleNick,
 	&Server::handlePart,
-	&Server::handlePass,
 	&Server::handlePrivmsg,
 	&Server::handleTopic,
-	&Server::handleUser,
 	};
 
 	const int	commandCount = sizeof(commands) / sizeof(commands[0]);
-	std::cout << "Raw cmd: [" << cmd << "]" << std::endl;
 	for (int i = 0; i < commandCount; ++i)
 	{
 		if (commands[i] == cmd)
 		{
-			(this->*handlers[i])();
+			(this->*handlers[i])(client, args);
 			return;
 		}
 	}
 
-	std::cerr << "Command not found" << std::endl;
-
-	//Client*	client = findClientByFd(_fds[_nbClients - 1].fd);
-	client = findClientByFd(_fds[_nbClients - 1].fd);
-
-	if (client)
-	{
-		std::string errMsg = ":" + _network_name + " 421 " + client->getNickname() + cmd + " :Unknown command";
-		sendMessage(client->getFd(), errMsg);
-	}
+	std::string errMsg = ":" + _network_name + " 421 " + client->getNickname() + cmd + " :Unknown command";
+	sendMessage(client->getFd(), errMsg);
 }
 
 
@@ -262,6 +246,7 @@ void Server::joinGreetings(int index)
 	sendMessage(_fds[index].fd, Reply::RPL_WELCOME(*client, *this));
 	sendMessage(_fds[index].fd, Reply::RPL_YOURHOST(*client, *this));
 	sendMessage(_fds[index].fd, Reply::RPL_CREATED(*client, *this));
+	sendMessage(_fds[index].fd, Reply::RPL_MYINFO(*client, *this));
 }
 
 void	Server::setDateTime()
@@ -283,6 +268,10 @@ void	signalIgnore()
 
 void	Server::closeExit()
 {
+	for (std::map<std::string, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+    {
+        delete it->second;
+    }
 	_clients.clear();
 	_channels.clear();
 
@@ -323,24 +312,24 @@ void	Server::parsePort(std::string port)
 
 Client*	Server::findClientByFd(int fd)
 {
-	for (std::map<std::string, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	for (std::map<std::string, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
-		if (it->second.getFd() == fd)
-			return (&(it->second));
+		if (it->second->getFd() == fd)
+			return (it->second);
 	}
 	return (NULL);
 }
 
 Client*	Server::findClientByNick(const std::string& nick)
 {
-	std::map<std::string, Client>::iterator	it = _clients.find(nick);
-	return (it != _clients.end() ? &(it->second) : NULL);
+	std::map<std::string, Client*>::iterator	it = _clients.find(nick);
+	return (it != _clients.end() ? it->second : NULL);
 }
 
 Channel*	Server::findChannel(const std::string& name)
 {
 	std::map<std::string, Channel>::iterator	it = _channels.find(name);
-	return (it != _channels.end() ? &(it->second) : NULL);
+	return (it != _channels.end() ? (&it->second) : NULL);
 }
 
 void	Server::sendMessage(int fd, const std::string& message)
@@ -348,6 +337,3 @@ void	Server::sendMessage(int fd, const std::string& message)
 	std::string msg = message + "\r\n";
 	send(fd, msg.c_str(), msg.length(), 0);
 }
-
-//<<<<<<<<<<<<<<<<<<<<<<EXECUTE COMMANDS/HANDLERS>>>>>>>>>>>>>>>>>>>>>>>>
-

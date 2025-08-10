@@ -76,11 +76,11 @@ namespace Errors
 		return (str);
 	}
 
-	std::string	ERR_NEEDMOREPARAMS(const Client& client, const Input& in)
+	std::string	ERR_NEEDMOREPARAMS(const Client& client, Input in)
 	{
 		std::string	str = client.getClient();
 		str += ' ';
-		str +=  in.getCommand();
+		str +=  in.getFullInput();
 		str +=  " :Not enough parameters";
 		str += "\r\n";
 

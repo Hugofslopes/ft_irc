@@ -31,38 +31,21 @@ class Server
 		Server(std::string, std::string);
 		~Server();
 
-		std::string	getName() const;
-		std::string	getVersion() const;
-		std::string	getStTime() const;
-
 		void		start();
 		void		run();
-		void		newClient();
-		void		clientRequest(int);
-		void		executeCommand(int index);
-		
-		void		processRegister(Client *client);
-
-		void		handleInvite();
-		void		handleJoin();
-		void		handleKick();
-		void		handleMode();
-		void		handleNick();
-		void		handlePart();
-		void		handlePass();
-		void		handleTopic();
-		void		handlePrivmsg();
-		void		handleUser();
 
 		static Server*	instance;
 		void		closeExit();
 
+		std::string	getName() const;
+		std::string	getVersion() const;
+		std::string	getStTime() const;
 	private:
 		Server();
 		Server(const Server&);
 		Server& operator=(const Server&);
 
-		std::map<std::string, Client>	_clients;
+		std::map<std::string, Client *>	_clients;
 		std::map<std::string, Channel>	_channels;
 		std::string						_network_name;
 		std::string						_version;
@@ -73,7 +56,6 @@ class Server
 		struct pollfd					_fds[1024];
 		int								_socketfd;
 
-		Input		_input;
 
 		void		setDateTime();
 		void		parsePort(std::string);
@@ -83,7 +65,27 @@ class Server
 		Client*		findClientByNick(const std::string& nick);
 		Channel*	findChannel(const std::string& name);
 		void		sendMessage(int fd, const std::string& message);
-};
+		void		removeFromReg(Client *client);
+		void		processInitialCommands(Client *client,std::vector<std::string> args);
+		void		newClient();
+		void		removeClient(Client *client, int index);
+		void		clientRequest(int);
+		void		executeCommand(Client *client, std::vector<std::string> args);
+		
+		void		processRegister(Client *client, std::string msg);
+
+		void		handleInvite(Client *client, std::vector<std::string> args);
+		void		handleJoin(Client *client, std::vector<std::string> args);
+		void		handleKick(Client *client, std::vector<std::string> args);
+		void		handleMode(Client *client, std::vector<std::string> args);
+		void		handleNick(Client *client, std::vector<std::string> args);
+		void		handlePart(Client *client, std::vector<std::string> args);
+		void		handlePass(Client *client, std::vector<std::string> args);
+		void		handleTopic(Client *client, std::vector<std::string> args);
+		void		handlePrivmsg(Client *client, std::vector<std::string> args);
+		void		handleUser(Client *client, std::vector<std::string> args);
+		void 		handleAllCredenti(Client *client, std::vector<std::string> args);
+	};
 extern Server*	instance;
 
 void	signalIgnore();
