@@ -31,6 +31,9 @@ std::vector<std::string> Input::process_args() {
         std::istringstream lineStream(line);
         std::string word;
         while (lineStream >> word) {
+            if (!word.empty() && word[0] == '#')
+                for (size_t i = 0; i < word.length(); ++i)
+                    word[i] = std::tolower(static_cast<unsigned char>(word[i]));
             result.push_back(word);
         }
 

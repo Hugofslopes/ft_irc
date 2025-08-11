@@ -5,36 +5,38 @@ namespace Reply
 {
 	std::string	RPL_NOTOPIC(const Client& client, const Channel& ch)
 	{
-		std::string	str = client.getClient();
+		std::string	str = client.getNickname();
 		str += ' ';
 		str += ch.getName();
-		str += " :No topic is set\r\n";
+		str += " :No topic is set";
 
 		return (str);
 	}
 
-	std::string	RPL_TOPIC(const Client& client, const Channel& ch)
+	std::string	RPL_TOPIC(const Client& client, const Channel& ch, const std::string topic)
 	{
-		std::string str = client.getClient();
-		str += ' ';
+		std::string str = ":";
+		str += client.getNickname();
+		str += '!';
+		str += client.getUsername();
+		str += "@localhost TOPIC " ;
 		str += ch.getName();
-		str += " :";
-		str += ch.getTopic();
-		str += "\r\n";
+		str += ' ';
+		str += topic;
 
 		return (str);
 	}
 
-	std::string	RPL_INVITING(const Client& client, const Channel& ch)
-	{
-		std::string	str = client.getClient();
-		str += ' ';
-		str += client.getNickname() ;
-		str += ' ';
+	std::string RPL_INVITING(const Client& client, const Channel& ch, const std::string& targetNick, 
+		const Server& serverName) {
+		std::string str = ":" + serverName.getName() + " 341 ";
+		str += client.getNickname();
+		str += " ";
+		str += targetNick;
+		str += " ";
 		str += ch.getName();
-		str += "\r\n";
 
-		return (str);
+		return str;
 	}
 
 	std::string	RPL_WELCOME(const Client& client, const Server& server)
@@ -45,28 +47,23 @@ namespace Reply
 		str += server.getName();
 		str += " network, ";
 		str += client.getNickname() ;
-		str += "\r\n";
 
 		return (str);
 	}
 
-	std::string	RPL_YOURHOST(const Client& client, const Server& server)
+	std::string	RPL_YOURHOST(const Server& server)
 	{
 		std::string	str =  "002 :Your host is ";
 		str += server.getName();
 		str += ", running version ";
 		str += server.getVersion();
-		str += "\r\n";
-		(void)client;
 		return (str);
 	}
 
-	std::string	RPL_CREATED(const Client& client, const Server& server)
+	std::string	RPL_CREATED(const Server& server)
 	{
 		std::string	str = "003 :This server was created ";
 		str += server.getStTime();
-		str += "\r\n";
-		(void)client;
 
 		return str;
 	}
@@ -79,18 +76,9 @@ namespace Reply
 		str += ' ';
 		str += server.getVersion();
 		str += " :Available user modes: o, channel modes: tkl";
-		str += "\r\n";
 
 		return str;
 	}
-
-    std::string RPL_JOIN(const Client& client, const Channel& ch){
-        std::string str = 
-        (":" + client.getNickname() + "!" + client.getUsername() + "@localhost JOIN " + ch.getName() + "\r\n" +
-        "Now talking on #" +  ch.getName() + "\r\n" +
-        "Topic for #" + ch.getName() + " is: " + ch.getTopic() + "\r\n");
-        return str;
-    }
 
     std::string RPL_JOINEDCHA(const Client& client, const Channel& ch){
         std::string str = ":";
@@ -101,30 +89,34 @@ namespace Reply
 		str += "localhost";
 		str += " JOIN ";
 		str += ch.getName();
-		str += "\r\n";
 		return str;
     }
 
 	std::string RPL_JOINEDCHATOPIC(const Server& sv, const Client& client, const Channel& ch){
 		std::string str = ":" + sv.getName() + " 332 ";
-		str += client.getNickname() + " " + ch.getName() + " :" + ch.getTopic() + "\r\n";
+		str += client.getNickname() + " " + ch.getName() + " :" + ch.getTopic();
 		return str;
 	}
 
-	
 	std::string RPL_NAMREPLY(const Client& client, const Channel& ch) {
 		std::string str = ":";
-		str += client.getNickname() + "!" + client.getUsername() + "@" + "localhost";
+		str += client.getNickname() + "!" + client.getUsername() + "@localhost";
 		str += " 353 ";
 		str += client.getNickname();
 		str += " = ";
 		str += ch.getName();
 		str += " :";
 
-		std::vector<std::string>::const_iterator it = ch.getMembers().begin();
-		for (; it != ch.getMembers().end(); it++)
-			str += *it + " ";
-		str += "\r\n";
+		const std::vector<std::string>& members = ch.getMembers();
+		const std::vector<std::string>& operators = ch.getOperators();
+
+		for (std::vector<std::string>::const_iterator it = members.begin(); it != members.end(); ++it) {
+			std::string prefix = "";
+			if (std::find(operators.begin(), operators.end(), *it) != operators.end())
+				prefix = "@";
+			str += prefix + *it + " ";
+		}
+
 		return str;
 	}
 
@@ -135,16 +127,17 @@ namespace Reply
 		str += client.getNickname();
 		str += " ";
 		str += ch.getName();
-		str += " :End of /NAMES list.\r\n";
+		str += " :End of /NAMES list.";
     return str;
 	}
 
 	std::string RPL_WHO_REPLY(const Server& sv, const Channel& ch, const Client& cl) {
-		std::vector<std::string>::const_iterator it = ch.getOperators().begin();
+		std::vector<std::string> operators = ch.getOperators();
+		std::vector<std::string>::const_iterator it = operators.begin();
 		bool status = false;
 		std::string statusS = "H";
 
-		for (; it != ch.getMembers().end(); it++)
+		for (; it != operators.end(); it++)
 			if (*it == cl.getNickname())
 				status = true;
 
@@ -152,13 +145,25 @@ namespace Reply
 			statusS += "@";
 
 		return ":" + sv.getName() + " 352 " + cl.getNickname() + " " + ch.getName() + " " +
-		cl.getUsername() + " lochalhost " + sv.getName() + " " + cl.getNickname() + " " +
-		statusS + " :" + '0' + " " + cl.getClient();
+		cl.getUsername() + " localhost " + sv.getName() + " " + cl.getNickname() + " " +
+		statusS + " :0 " + cl.getClient();
 	}
 
 	std::string RPL_WHO_END_REPLY(const Server& sv, const Channel& ch, const Client& cl){
 		return ":" + sv.getName() + " 315 " + cl.getNickname() + " " + ch.getName() + 
 		" :End of /WHO list.";
+	}
+
+	std::string RPL_PART(const Client& client, const Channel& channel) {
+    	std::string msg = ":" + client.getNickname() + "!" + client.getUsername() + "@" + "localhost";
+    	msg += " PART " + channel.getName();
+    	return msg;
+	}
+
+	std::string RPL_QUIT(const Client& client, const std::string& quitMessage) {
+		std::string msg = ":" + client.getNickname() + "!" + client.getUsername() + "@localhost";
+		msg += " QUIT :" + quitMessage;
+    return msg;
 	}
 
 }

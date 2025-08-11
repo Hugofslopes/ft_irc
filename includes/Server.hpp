@@ -64,6 +64,7 @@ class Server
 		Client*		findClientByFd(int);
 		Client*		findClientByNick(const std::string&);
 		Channel*	findChannel(const std::string&);
+		int 		findFdIndex(int fd) const;
 		void		sendMessage(int, const std::string&);
 		void		removeFromReg(Client *);
 		void		processInitialCommands(Client *,std::vector<std::string>);
@@ -72,8 +73,8 @@ class Server
 		void		clientRequest(int);
 		void		executeCommand(Client *, std::vector<std::string>);
 		
-		void		processRegister(Client *, std::string);
-		void		processRegister2(Client *, std::vector<std::string>);
+		void		processRegister(Client *, std::string, int);
+		void		processRegister2(Client *, std::vector<std::string>, int);
 
 		void		handleInvite(Client *, std::vector<std::string>);
 		void		handleJoin(Client *, std::vector<std::string>);
@@ -85,8 +86,8 @@ class Server
 		void		handleTopic(Client *, std::vector<std::string>);
 		void		handlePrivmsg(Client *, std::vector<std::string>);
 		int			handleUser(Client *, std::vector<std::string>);
-		void 		handleAllCredenti(Client *, std::vector<std::string>);
 		void		handleWho(Client *, std::vector<std::string>);
+		void		handleQuit(Client *, std::vector<std::string>);
 	};
 extern Server*	instance;
 

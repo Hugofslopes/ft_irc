@@ -149,27 +149,33 @@ void	Server::newClient()
 void Server::removeClient(Client *client, int index)
 {
 	std::string	nick = client->getNickname();
-		const std::vector<std::string>&	channels = client->getChannels();
-		for (size_t i = 0; i < channels.size(); ++i)
+	const std::vector<std::string>&	channels = client->getChannels();
+	for (size_t i = 0; i < channels.size(); ++i)
+	{
+		Channel*	channel = findChannel(channels[i]);
+		if (channel)
 		{
-			Channel*	channel = findChannel(channels[i]);
-			if (channel)
+			channel->removeMember(nick);
+			std::string	partMsg = ":" + nick + " PART " + channels[i];
+			const std::vector<std::string>&	members = channel->getMembers();
+			for (size_t j = 0; j < members.size(); ++j)
 			{
-				channel->removeMember(nick);
-				std::string	partMsg = ":" + nick + " PART " + channels[i];
-				const std::vector<std::string>&	members = channel->getMembers();
-				for (size_t j = 0; j < members.size(); ++j)
-				{
-					Client*	member = findClientByNick(members[j]);
-					if (member)
-						sendMessage(member->getFd(), partMsg);
-				}
+				Client*	member = findClientByNick(members[j]);
+				if (member)
+					sendMessage(member->getFd(), partMsg);
 			}
 		}
-		_clients.erase(nick.empty() ? client->getClient() : nick);
-		close(_fds[index].fd);
-		_fds[index].fd = -1;
-		std::cout << "Client disconnected\n";
+	}
+	for (std::map<std::string, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+		if (it->second == client) {
+			_clients.erase(it);
+			break;
+		}
+	}
+	delete client;
+	close(_fds[index].fd);
+	_fds[index].fd = -1;
+	std::cout << "Client disconnected\n";
 }
 
 void	Server::clientRequest(int index)
@@ -183,23 +189,25 @@ void	Server::clientRequest(int index)
 	std::cout << "BUFFER[" <<buffer <<']'<< std::endl;
 	Client*	client = findClientByFd(_fds[index].fd);
 	if (bytesRead <= 0)
-	{
-		removeClient(client, index);
+	{	
+		if (_fds[index].fd != -1)
+			removeClient(client, index);
 		return ;
 	}
-
-    std::string message(buffer, bytesRead);
+	std::string message(buffer, bytesRead);
 	std::vector<std::string> args;
-	
-	if (!client->isRegistered())
-		processRegister(client, message);
+
+	if (!client->isRegistered() && _fds[index].fd != -1)
+		processRegister(client, message, index);
 	else{
 		client->_input.processInput(message);
 		if (client->_input.getRaw().find("\n") != std::string::npos){
 			while (!client->_input.getRaw().empty()){
 				args = client->_input.process_args();
-				processRegister2(client, args);
+				processRegister2(client, args, index);
 				executeCommand(client, args);
+				if (_fds[index].fd == -1)
+					return;
 			}
 		}
 		else
@@ -212,7 +220,7 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 	std::string cmd = args[0];
 	const std::string	commands[] = {
 		"INVITE", "JOIN", "KICK", "MODE", "PART",
-		"PRIVMSG", "TOPIC",
+		"PRIVMSG", "TOPIC", "WHO", "QUIT"
 	};
 
 	void	(Server::*handlers[])(Client *client, std::vector<std::string> args) = {
@@ -224,6 +232,7 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 	&Server::handlePrivmsg,
 	&Server::handleTopic,
 	&Server::handleWho,
+	&Server::handleQuit
 	};
 
 	const int	commandCount = sizeof(commands) / sizeof(commands[0]);
@@ -245,8 +254,8 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 void Server::joinGreetings(Client *client)
 {
 	sendMessage(client->getFd(), Reply::RPL_WELCOME(*client, *this));
-	sendMessage(client->getFd(), Reply::RPL_YOURHOST(*client, *this));
-	sendMessage(client->getFd(), Reply::RPL_CREATED(*client, *this));
+	sendMessage(client->getFd(), Reply::RPL_YOURHOST(*this));
+	sendMessage(client->getFd(), Reply::RPL_CREATED(*this));
 	sendMessage(client->getFd(), Reply::RPL_MYINFO(*client, *this));
 }
 
@@ -337,4 +346,14 @@ void	Server::sendMessage(int fd, const std::string& message)
 {
 	std::string msg = message + "\r\n";
 	send(fd, msg.c_str(), msg.length(), 0);
+}
+
+int Server::findFdIndex(int fd) const
+{
+    for (int i = 0; i < 1024; ++i)
+    {
+        if (_fds[i].fd == fd)
+            return i;
+    }
+    return -1; 
 }

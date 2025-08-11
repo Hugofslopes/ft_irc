@@ -13,12 +13,16 @@ void removeClientByFd(std::map<std::string, Client*>& clients, int fdToRemove) {
 void Server::removeFromReg(Client *client){
 	std::string str = "Invalid parameters for regist!! \nPlease reconnect and insert :\"CAP LS 302\"\nPASS <pass_value>\nNICK <nick>\nUSER <user>\n";
 	sendMessage(client->getFd(), str);
+	int index = findFdIndex(client->getFd());
+	int fd = client->getFd();
 	removeClientByFd(_clients, client->getFd());
-	close(client->getFd());
-	_fds[client->getFd()].fd = -1;
+	close(fd);
+	_fds[index].fd = -1;
 }
 
-void	Server::processRegister2(Client *client, std::vector<std::string> args){
+void	Server::processRegister2(Client *client, std::vector<std::string> args, int index){
+	if (_fds[index].fd == -1)
+			return;
 	if (client->getStartReg())
 		processInitialCommands(client, args);
 	else if (!client->getStartReg() && args[0] == "CAP" &&  args[1] == "LS" && args[2] == "302" 
@@ -31,13 +35,15 @@ void	Server::processRegister2(Client *client, std::vector<std::string> args){
 		removeFromReg(client);
 }
 
-void	Server::processRegister(Client *client, std::string msg) {
+void	Server::processRegister(Client *client, std::string msg, int index) {
 	std::vector<std::string> args;
 	client->_input.processInput(msg);
 	if (client->_input.getRaw().find("\n") != std::string::npos){
 		while (!client->_input.getRaw().empty()){
 			args = client->_input.process_args();
-			processRegister2(client, args);
+			processRegister2(client, args, index);
+			if (_fds[index].fd == -1)
+				return;
 		}
 	}
 	else
@@ -55,12 +61,19 @@ void Server::processInitialCommands(Client *client, std::vector<std::string> arg
 			joinGreetings(client);
 		}
 	} */
+	std::cout << "ESTOU AQUI o meu arg e " << args[0] 
+	<< "   e estou registado? " << client->isRegistered() << std::endl;
 	if (args[0] == "PASS" && client->getPass().empty())
 		handlePass(client, args);
 	else if (args[0] == "NICK" && !client->getPass().empty())
 		handleNick(client, args);
 	else if (args[0] == "USER" && !client->getNickname().empty())
 		handleUser(client, args);
+	else if (!client->isRegistered() && args[0] != "USER" && args[0] != "NICK"
+	&& args[0] != "PASS"){
+		removeFromReg(client);
+		return ;
+	}
 	if (!client->getNickname().empty() && !client->getPass().empty() 
 		&& !client->getUsername().empty() && !client->isRegistered())
 		{

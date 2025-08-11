@@ -6,14 +6,14 @@
 
 void	Server::handleInvite(Client *client, std::vector<std::string> args)
 {
-	if (args.size() < 2)
+	if (args.size() < 3)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
-	std::string	targetNick = args[0];
-	std::string	channelName = args[1];
+	std::string	targetNick = args[1];
+	std::string	channelName = args[2];
 	if (channelName[0] != '#')
 		channelName = "#" + channelName;
 
@@ -44,9 +44,10 @@ void	Server::handleInvite(Client *client, std::vector<std::string> args)
 	}
 	
 	channel->addInvited(targetNick);
-	sendMessage(client->getFd(), Reply::RPL_INVITING(*client, *channel));
-	std::string	inviteMsg = ":" + client->getNickname() + " INVITE " + targetNick + " " + channelName;
-	sendMessage(client->getFd(), inviteMsg);
+	sendMessage(client->getFd(), Reply::RPL_INVITING(*client, *channel, targetNick, *this));
+	std::string	inviteMsg = ":" + client->getNickname() + " INVITE " + targetNick + " :" + channelName;
+	Client * client2 = findClientByNick(targetNick);
+	sendMessage(client2->getFd(), inviteMsg);
 }
 
 void	Server::handleJoin(Client *client, std::vector<std::string> args)
@@ -76,7 +77,7 @@ void	Server::handleJoin(Client *client, std::vector<std::string> args)
 			sendMessage(client->getFd(), Errors::ERR_CHANNELISFULL(*client, *channel));
 			return ;
 		}
-		if (channel->getInvite() && channel->isInvited(client->getNickname()))
+		if (channel->getInvite() && !channel->isInvited(client->getNickname()))
 		{
 			sendMessage(client->getFd(), Errors::ERR_INVITEONLYCHAN(*client, *channel));
 			return ;
@@ -229,8 +230,11 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 			adding = false;
 			continue ;
 		}
-
-		std::string	param = paramIndx < args.size() ? args[paramIndx++] : "";
+		std::string	param;
+		if (args.size() >= paramIndx + 1 && (mode == 'o' || mode == 'k' || mode == 'l')) 
+			param = args[++paramIndx];
+		else
+			param = "";
 		if (mode == 'i' && adding == true)
 			channel->setInvite(adding);
 		else if (mode == 't')
@@ -246,7 +250,9 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 		{
 			if (!param.empty())
 			{
-				if (!channel->isMember(param))
+				std::cout<< "param " << param << std::endl;
+				std::cout<< "E membro? " << channel->isMember(param) << std::endl;
+				if (channel->isMember(param) == false)
 				{
 					sendMessage(client->getFd(), Errors::ERR_USERNOTINCHANNEL(*client, *channel));
 					return ;
@@ -291,7 +297,7 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 }
 
 int   Server::handleNick(Client *client, std::vector<std::string> args)
-{
+{	
 	if (args.empty())
 	{
 		sendMessage(client->getFd(), Errors::ERR_NONICKNAMEGIVEN(*client));
@@ -345,7 +351,7 @@ int   Server::handleNick(Client *client, std::vector<std::string> args)
 		identity = oldNick + "!" + client->getNickname()+ "@localhost";
 	else
 		identity = oldNick;
-	std::string nickMsg = ":" + identity + " NICK :" + newNick + "\r\n";
+	std::string nickMsg = ":" + identity + " NICK :" + newNick;
 	sendMessage(client->getFd(), nickMsg);
 	return 0;
 }
@@ -358,7 +364,7 @@ void    Server::handlePart(Client *client, std::vector<std::string> args)
 		return ;
 	}
 
-	std::string	channelName = args[0];
+	std::string	channelName = args[1];
 	if (channelName[0] != '#')
 		channelName = "#" + channelName;
 
@@ -376,15 +382,14 @@ void    Server::handlePart(Client *client, std::vector<std::string> args)
 
 	channel->removeMember(client->getNickname());
 	client->removeChannel(channelName);
-	std::string	partMsg = ":" + client->getNickname() + " PART " + channelName;
 	const std::vector<std::string>&	members = channel->getMembers();
 	for (size_t i = 0; i < members.size(); ++i)
 	{
 		Client* member = findClientByNick(members[i]);
 		if (member)
-			sendMessage(member->getFd(), partMsg);
+			sendMessage(member->getFd(), Reply::RPL_PART(*client, *channel));
 	}
-	sendMessage(client->getFd(), partMsg);
+	sendMessage(client->getFd(), Reply::RPL_PART(*client, *channel));
 }
 
 int    Server::handlePass(Client *client, std::vector<std::string> args)
@@ -413,44 +418,46 @@ void    Server::handleTopic(Client *client, std::vector<std::string> args)
 {
 	if (args.empty())
 	{
-		Errors::ERR_NEEDMOREPARAMS(*client,  client->_input);
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
-	std::string	channelName = args[0];
+	std::string	channelName = args[1];
 	if (channelName[0] != '#')
 		channelName = "#" + channelName;
 
-	std::string	topic = args.size() < 1 ? args[1] : "";
+	std::string	topic = args.size() < 3 ?  "" : args[2] ;
 
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		Errors::ERR_NOSUCHCHANNEL(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
 		return ;
 	}
 	if (!channel->isMember(client->getNickname()))
 	{
-		Errors::ERR_NOTONCHANNEL(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_NOTONCHANNEL(*client, *channel));
 		return ;
 	}
 	if (topic.empty())
 	{
 		if (channel->getTopic().empty())
-			Reply::RPL_NOTOPIC(*client, *channel);
+			sendMessage(client->getFd(), Reply::RPL_NOTOPIC(*client, *channel));
 		else
-			Reply::RPL_TOPIC(*client, *channel);
+			sendMessage(client->getFd(), Reply::RPL_TOPIC(*client, *channel, topic));
 		return ;
 	}
 
 	if (channel->getTopicRestricted() && !channel->isOperator(client->getNickname()))
 	{
-		Errors::ERR_CHANOPRIVSNEEDED(*client, *channel);
+		sendMessage(client->getFd(), Errors::ERR_CHANOPRIVSNEEDED(*client, *channel));
 		return ;
 	}
 
 	channel->setTopic(topic);
-	std::string	topicMsg = ":" +client->getNickname() + " TOPIC " + channelName + " :" + topic;
+	std::string	topicMsg = ":" + Reply::RPL_TOPIC(*client, *channel, topic);
+	std::cout << "Mensagem para os clientes" << topicMsg << std::endl;
+	std::cout << "topico" << channel->getTopic() << std::endl;
 	const std::vector<std::string>&	members = channel->getMembers();
 	for (size_t i = 0; i < members.size(); ++i)
 	{
@@ -469,7 +476,15 @@ void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 	}
 
 	std::string	target = args[1];
-	std::string	message = args[2];
+	std::string	message;
+	std::vector<std::string>::iterator it = args.begin();
+	if (args.size() > 1)
+		it += 2;
+	for (int i = 0; it != args.end(); it++, i++){
+		if (i != 0)
+			message += ' ';
+		message += *it;
+	}
 	if (message[0] == ':')
 		message.erase(0, 1);
 
@@ -492,7 +507,7 @@ void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 		for (size_t i = 0; i < members.size(); ++i)
 		{
 			Client*	member = findClientByNick(members[i]);
-			if (member)
+			if (member && member->getFd() != client->getFd())
 				sendMessage(member->getFd(), privMsg);
 		}
 	}
@@ -506,7 +521,7 @@ void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 			sendMessage(client->getFd(), errMsg);
 			return ;
 		}
-		std::string	privMsg = ":" + client->getNickname() + " PRIVMSG" + target + " :" + message;
+		std::string	privMsg = ":" + client->getNickname() + " PRIVMSG " + target + " :" + message;
 		sendMessage(targetClient->getFd(), privMsg);
 	}
 }
@@ -546,4 +561,40 @@ void    Server::handleWho(Client *client, std::vector<std::string> args)
 
 	sendMessage(client->getFd(), Reply::RPL_WHO_REPLY(*this,*channel,*client));
 	sendMessage(client->getFd(), Reply::RPL_WHO_END_REPLY(*this,*channel,*client));
+}
+
+void	Server::handleQuit(Client *client, std::vector<std::string> args){
+	std::string msg;
+	std::vector<std::string>::iterator it = args.begin();
+	if (args.size() > 1)
+		it += 2;
+	for (int i = 0; it != args.end(); it++, i++){
+		if (i > 0)
+			msg += ' ';
+		msg += *it;
+	}
+
+	std::vector<std::string> channels = client->getChannels();
+	if (!channels.empty())
+	{
+		std::vector<std::string> msgSent;
+		std::vector<std::string>::iterator itch = channels.begin();
+
+		for (; itch != channels.end(); itch++){
+			Channel*	channel = findChannel(*itch);
+			std::vector<std::string>  channelMemb = channel->getMembers();
+			std::vector<std::string>::iterator  itc = channelMemb.begin();
+
+			for (; itc != channelMemb.end(); itc++){
+				if (std::find(msgSent.begin(), msgSent.end(), *itc) == msgSent.end()){
+					 msgSent.push_back(*itc);
+					Client* member = findClientByNick(*itc);
+					sendMessage(member->getFd(), Reply::RPL_QUIT(*client,msg));
+				}
+			}
+		}
+	}
+
+	int index = findFdIndex(client->getFd());
+	removeClient(client, index);
 }
