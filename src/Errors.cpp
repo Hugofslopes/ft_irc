@@ -97,11 +97,11 @@ namespace Errors
 		return (str);
     }
 
-	std::string	ERR_NOSUCHCHANNEL(const Client& client, const Channel& chn)
+	std::string	ERR_NOSUCHCHANNEL(const Client& client, const std::string& chn)
 	{
 		std::string	str = client.getNickname();
 		str += ' ';
-		str += chn.getName();
+		str += chn;
 		str += " :No such channel";
 
 		return (str);

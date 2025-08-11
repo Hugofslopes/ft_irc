@@ -6,7 +6,6 @@
 # include "Channel.hpp"
 # include <string>
 
-//Luigi: faltava declarar aqui
 class Client;
 
 namespace Errors
@@ -21,7 +20,7 @@ namespace Errors
 	std::string	ERR_NEEDMOREPARAMS(const Client&, Input);
 	std::string	ERR_NICKNAMEINUSE(const Client&);
 	std::string	ERR_NONICKNAMEGIVEN(const Client&);
-	std::string	ERR_NOSUCHCHANNEL(const Client&, const Channel&);
+	std::string	ERR_NOSUCHCHANNEL(const Client&, const std::string&);
 	std::string	ERR_NOTONCHANNEL(const Client&, const Channel&);
 	std::string	ERR_PASSWDMISMATCH(const Client&);
 	std::string	ERR_USERNOTINCHANNEL(const Client&, const Channel&);

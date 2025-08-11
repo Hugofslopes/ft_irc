@@ -20,7 +20,7 @@ void	Server::handleInvite(Client *client, std::vector<std::string> args)
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, channelName));
 		return ;
 	}
 	if (!channel->isMember(client->getNickname()))
@@ -135,7 +135,7 @@ void	Server::handleKick(Client *client, std::vector<std::string> args)
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, channelName));
 		return ;
 	}
 	if (!channel->isMember(client->getNickname()))
@@ -190,7 +190,7 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, channelName));
 		return ;
 	}
 	if (!channel->isOperator(client->getNickname()))
@@ -231,7 +231,7 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 			continue ;
 		}
 		std::string	param;
-		if (args.size() >= paramIndx + 1 && (mode == 'o' || mode == 'k' || mode == 'l')) 
+		if (args.size() > paramIndx + 1 && (mode == 'o' || mode == 'k' || mode == 'l')) 
 			param = args[++paramIndx];
 		else
 			param = "";
@@ -371,7 +371,7 @@ void    Server::handlePart(Client *client, std::vector<std::string> args)
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, channelName));
 		return ;
 	}
 	if (!channel->isMember(client->getNickname()))
@@ -431,7 +431,7 @@ void    Server::handleTopic(Client *client, std::vector<std::string> args)
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, channelName));
 		return ;
 	}
 	if (!channel->isMember(client->getNickname()))
@@ -493,7 +493,7 @@ void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 		Channel*	channel = findChannel(target);
 		if (!channel)
 		{
-			sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+			sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, target));
 			return ;
 		}
 		if (!channel->isMember(client->getNickname()))
@@ -555,7 +555,7 @@ void    Server::handleWho(Client *client, std::vector<std::string> args)
 	Channel*	channel = findChannel(args[1]);
 	if (!channel)
 	{
-		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, *channel));
+		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, args[1]));
 		return ;
 	}
 
