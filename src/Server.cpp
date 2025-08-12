@@ -112,7 +112,7 @@ void	Server::run()
 			{
 				if (_fds[i].fd == _socketfd)
 				{
-					std::cout <<"New cliente"<< std::endl;
+					std::cout <<"New client"<< std::endl;
 					newClient();
 				}
 				else

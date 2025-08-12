@@ -25,8 +25,10 @@ void	Server::processRegister2(Client *client, std::vector<std::string> args, int
 			return;
 	if (client->getStartReg())
 		processInitialCommands(client, args);
-	else if (!client->getStartReg() && args[0] == "CAP" &&  args[1] == "LS" && args[2] == "302" 
-	&& args.size() == 3){
+	else if ((!client->getStartReg() && args.size() == 3 \
+	&& args[0] == "CAP" &&  args[1] == "LS" && args[2] == "302") || \
+	(!client->getStartReg() && args.size() == 2 && args[0] == "CAP" &&  args[1] == "LS"))
+	{
 		client->setStartReg(true);
 		sendMessage(client->getFd(),"CAP * LS");
 		return;
@@ -52,17 +54,6 @@ void	Server::processRegister(Client *client, std::string msg, int index) {
 
 void Server::processInitialCommands(Client *client, std::vector<std::string> args)
 {
-	/* if (args[0] == "CAP" && args[1] == "END")
-	{
-		if (!client->getNickname().empty() && !client->getPass().empty() 
-		&& !client->getUsername().empty() && !client->isRegistered())
-		{
-			client->setRegistered(true);
-			joinGreetings(client);
-		}
-	} */
-	std::cout << "ESTOU AQUI o meu arg e " << args[0] 
-	<< "   e estou registado? " << client->isRegistered() << std::endl;
 	if (args[0] == "PASS" && client->getPass().empty())
 		handlePass(client, args);
 	else if (args[0] == "NICK" && !client->getPass().empty())

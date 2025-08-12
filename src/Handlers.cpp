@@ -14,8 +14,6 @@ void	Server::handleInvite(Client *client, std::vector<std::string> args)
 
 	std::string	targetNick = args[1];
 	std::string	channelName = args[2];
-	if (channelName[0] != '#')
-		channelName = "#" + channelName;
 
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
@@ -59,7 +57,11 @@ void	Server::handleJoin(Client *client, std::vector<std::string> args)
 	}
 
 	std::string	channelName = args[1];
-	
+	if (channelName[0] != '#'){
+		sendMessage(client->getFd(),Errors::ERR_NOSUCHCHANNEL(*client, channelName));
+		return;
+	}
+
 	std::string	key = args.size() > 2 ? args[2] : "";
 
 	Channel*	channel = findChannel(channelName);
@@ -96,41 +98,31 @@ void	Server::handleJoin(Client *client, std::vector<std::string> args)
 
 	client->addChannel(channelName);
 
-	std::cout << "Este e o meu fd" << client->getFd() <<" este e o meu nick " <<client->getNickname()<< std::endl;
-	std::string	joinMsg = ":" + client->getNickname() + " JOIN " + channelName;
-
 	const std::vector<std::string>&	members = channel->getMembers();
 	for (size_t i = 0; i < members.size(); ++i)
 	{
 		Client*	member = findClientByNick(members[i]);
 		if (member && member != client)
-			sendMessage(member->getFd(), joinMsg);
+			sendMessage(member->getFd(), Reply::RPL_JOINEDCHA(*client,*channel));
 	}
 
 	sendMessage(client->getFd(),Reply::RPL_JOINEDCHA(*client,*channel));
 	sendMessage(client->getFd(),Reply::RPL_JOINEDCHATOPIC(*this,*client,*channel));
 	sendMessage(client->getFd(),Reply::RPL_NAMREPLY(*client,*channel));
 	sendMessage(client->getFd(),Reply::RPL_ENDOFNAMES(*client,*channel));
-
-	/* if (channel->getTopic().empty())
-		sendMessage(client->getFd(), Reply::RPL_NOTOPIC(*client, *channel));
-	else
-		sendMessage(client->getFd(), Reply::RPL_TOPIC(*client, *channel)); */
 }
 
 void	Server::handleKick(Client *client, std::vector<std::string> args)
 {
-	if (args.size() < 2)
+	if (args.size() < 3)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
-	std::string	channelName = args[0];
-	if (channelName[0] != '#')
-		channelName = "#" + channelName;
-	std::string	targetNick = args[1];
-	std::string	reason = args.size() > 2 ? args[2] : "No reason";
+	std::string	channelName = args[1];
+	std::string	targetNick = args[2];
+	std::string	reason = args.size() > 3 ? args[3] : "No reason";
 
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
@@ -174,15 +166,13 @@ void	Server::handleKick(Client *client, std::vector<std::string> args)
 
 void	Server::handleMode(Client *client, std::vector<std::string> args)
 {
-	if (args.empty())
+	if (args.empty() || args.size() < 2)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
 	}
 
 	std::string	channelName = args[1];
-	if (channelName[0] != '#')
-		channelName = "#" + channelName;
 	std::string	modeStr;
 	if (args.size() > 2)
 		modeStr = args.size() > 1 ? args[2] : "";
@@ -192,6 +182,11 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NOSUCHCHANNEL(*client, channelName));
 		return ;
+	}
+	if (channel && args.size() == 2)
+	{
+		sendMessage(client->getFd(), Reply::RPL_MODE(*this, *client, *channel));
+		return ;	
 	}
 	if (!channel->isOperator(client->getNickname()))
 	{
@@ -250,8 +245,6 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 		{
 			if (!param.empty())
 			{
-				std::cout<< "param " << param << std::endl;
-				std::cout<< "E membro? " << channel->isMember(param) << std::endl;
 				if (channel->isMember(param) == false)
 				{
 					sendMessage(client->getFd(), Errors::ERR_USERNOTINCHANNEL(*client, *channel));
@@ -311,7 +304,6 @@ int   Server::handleNick(Client *client, std::vector<std::string> args)
 		sendMessage(client->getFd(), Errors::ERR_ERRONEUSNICKNAME(*client));
 		return 1;
 	}
-	std::cout << newNick << "    " << findClientByNick(newNick) << std::endl;
 	if (findClientByNick(newNick))
 	{
 		sendMessage(client->getFd(), Errors::ERR_NICKNAMEINUSE(*client));
@@ -365,8 +357,6 @@ void    Server::handlePart(Client *client, std::vector<std::string> args)
 	}
 
 	std::string	channelName = args[1];
-	if (channelName[0] != '#')
-		channelName = "#" + channelName;
 
 	Channel*	channel = findChannel(channelName);
 	if (!channel)
@@ -423,8 +413,6 @@ void    Server::handleTopic(Client *client, std::vector<std::string> args)
 	}
 
 	std::string	channelName = args[1];
-	if (channelName[0] != '#')
-		channelName = "#" + channelName;
 
 	std::string	topic = args.size() < 3 ?  "" : args[2] ;
 
@@ -455,9 +443,7 @@ void    Server::handleTopic(Client *client, std::vector<std::string> args)
 	}
 
 	channel->setTopic(topic);
-	std::string	topicMsg = ":" + Reply::RPL_TOPIC(*client, *channel, topic);
-	std::cout << "Mensagem para os clientes" << topicMsg << std::endl;
-	std::cout << "topico" << channel->getTopic() << std::endl;
+	std::string	topicMsg = Reply::RPL_TOPIC(*client, *channel, topic);
 	const std::vector<std::string>&	members = channel->getMembers();
 	for (size_t i = 0; i < members.size(); ++i)
 	{

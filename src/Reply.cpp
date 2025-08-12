@@ -166,5 +166,33 @@ namespace Reply
     return msg;
 	}
 
-}
+	std::string RPL_MODE(const Server& sv, const Client& cl, const Channel& ch) {
+		std::string msg = ":" + sv.getName() + " 324 " + cl.getNickname() + ' ' + 
+		ch.getName() + ' ';
+		if (ch.getInvite())
+		{
+			msg += "+i";
+			
+		}
+		if (ch.getKey())
+		{
+			if (msg[msg.size() - 1] == ' ')
+				msg += '+';
+			msg += "k";
+		}
+		if (ch.getTopicRestricted())
+		{
+			if (msg[msg.size() - 1] == ' ')
+				msg += '+';
+			msg += "t";
+		}
+		if (ch.getUserLimit() != 0)
+		{
+			if (msg[msg.size() - 1] == ' ')
+				msg += '+';
+			msg += "l";
+		}
 
+    	return msg;
+	}
+}
