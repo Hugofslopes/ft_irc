@@ -71,7 +71,7 @@ void	Server::start()
 	_socketfd = socket(AF_INET6, SOCK_STREAM, 0);
 	if (_socketfd == -1)
 		throw std::runtime_error("Failed to create socket");
-
+	
     int	off = 0;
 	if (setsockopt(_socketfd, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(off)) < 0)
 		throw std::runtime_error("Failed to set socket options");
@@ -204,7 +204,6 @@ void	Server::clientRequest(int index)
 		if (client->_input.getRaw().find("\n") != std::string::npos){
 			while (!client->_input.getRaw().empty()){
 				args = client->_input.process_args();
-				processRegister2(client, args, index);
 				executeCommand(client, args);
 				if (_fds[index].fd == -1)
 					return;
@@ -241,6 +240,25 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 		if (commands[i] == cmd)
 		{
 			(this->*handlers[i])(client, args);
+			return;
+		}
+	}
+
+	const std::string	commands2[] = {
+		"USER","NICK"
+	};
+
+	int	(Server::*handlers2[])(Client *client, std::vector<std::string> args) = {
+	&Server::handleUser,
+	&Server::handleNick,
+	};
+
+	const int	commandCount2 = sizeof(commands2) / sizeof(commands2[0]);
+	for (int i = 0; i < commandCount2; ++i)
+	{
+		if (commands2[i] == cmd)
+		{
+			(this->*handlers2[i])(client, args);
 			return;
 		}
 	}
@@ -331,9 +349,13 @@ Client*	Server::findClientByFd(int fd)
 }
 
 Client*	Server::findClientByNick(const std::string& nick)
-{
-	std::map<std::string, Client*>::iterator	it = _clients.find(nick);
-	return (it != _clients.end() ? it->second : NULL);
+{	
+	if (!_clients.empty())
+	{
+		std::map<std::string, Client*>::iterator	it = _clients.find(nick);
+		return (it != _clients.end() ? it->second : NULL);
+	}
+	return NULL;
 }
 
 Channel*	Server::findChannel(const std::string& name)

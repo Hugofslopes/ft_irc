@@ -54,12 +54,27 @@ void	Server::processRegister(Client *client, std::string msg, int index) {
 
 void Server::processInitialCommands(Client *client, std::vector<std::string> args)
 {
+	if (args.empty())
+		return;
 	if (args[0] == "PASS" && client->getPass().empty())
-		handlePass(client, args);
-	else if (args[0] == "NICK" && !client->getPass().empty())
-		handleNick(client, args);
-	else if (args[0] == "USER" && !client->getNickname().empty())
-		handleUser(client, args);
+	{
+		if (handlePass(client, args)){
+			removeFromReg(client);
+			return;
+		}
+	}
+	else if (args[0] == "NICK" && !client->getPass().empty()){
+		if (handleNick(client, args)){
+			removeFromReg(client);
+			return;
+		}
+	}
+	else if (args[0] == "USER" && !client->getNickname().empty()){
+		if (handleUser(client, args)){
+			removeFromReg(client);
+			return;
+		}
+	}
 	else if (!client->isRegistered() && args[0] != "USER" && args[0] != "NICK"
 	&& args[0] != "PASS"){
 		removeFromReg(client);

@@ -296,7 +296,6 @@ int   Server::handleNick(Client *client, std::vector<std::string> args)
 		sendMessage(client->getFd(), Errors::ERR_NONICKNAMEGIVEN(*client));
 		return 1;
 	}
-
 	std::string	newNick = args[1];
 	// Validate nickname
 	if (newNick.empty() || isdigit(newNick[0]) || newNick.find_first_of(" ,*?!@.#&") != std::string::npos)
