@@ -33,6 +33,8 @@ void	Server::processRegister2(Client *client, std::vector<std::string> args, int
 		sendMessage(client->getFd(),"CAP * LS");
 		return;
 	}
+	else if (args.empty())
+		return;
 	else
 		removeFromReg(client);
 }
@@ -56,8 +58,7 @@ void Server::processInitialCommands(Client *client, std::vector<std::string> arg
 {
 	if (args.empty())
 		return;
-	if (args[0] == "PASS" && client->getPass().empty())
-	{
+	if (args[0] == "PASS" && client->getPass().empty()){
 		if (handlePass(client, args)){
 			removeFromReg(client);
 			return;
@@ -75,15 +76,13 @@ void Server::processInitialCommands(Client *client, std::vector<std::string> arg
 			return;
 		}
 	}
-	else if (!client->isRegistered() && args[0] != "USER" && args[0] != "NICK"
-	&& args[0] != "PASS"){
+	else {
 		removeFromReg(client);
 		return ;
 	}
 	if (!client->getNickname().empty() && !client->getPass().empty() 
-		&& !client->getUsername().empty() && !client->isRegistered())
-		{
-			client->setRegistered(true);
-			joinGreetings(client);
-		}
+	&& !client->getUsername().empty() && !client->isRegistered()){
+		client->setRegistered(true);
+		joinGreetings(client);
+	}
 }

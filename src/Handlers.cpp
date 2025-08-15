@@ -291,7 +291,7 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 
 int   Server::handleNick(Client *client, std::vector<std::string> args)
 {	
-	if (args.empty())
+	if (args.size() < 2)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NONICKNAMEGIVEN(*client));
 		return 1;
@@ -383,7 +383,7 @@ void    Server::handlePart(Client *client, std::vector<std::string> args)
 
 int    Server::handlePass(Client *client, std::vector<std::string> args)
 {
-	if (args.empty())
+	if (args.size() < 2)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return 1;
@@ -513,7 +513,7 @@ void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 
 int    Server::handleUser(Client *client, std::vector<std::string> args)
 {
-	if (args.size() < 4)
+	if (args.size() < 2)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, client->_input));
 		return 1;
@@ -529,6 +529,7 @@ int    Server::handleUser(Client *client, std::vector<std::string> args)
 	client->setUsername(username);
 	return 0;
 }
+
 void    Server::handleWho(Client *client, std::vector<std::string> args)
 {
 	if (args.size() < 2)
