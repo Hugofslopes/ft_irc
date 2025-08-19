@@ -41,7 +41,7 @@ namespace Reply
 
 	std::string	RPL_WELCOME(const Client& client, const Server& server)
 	{
-		std::string	str = "001 ";
+		std::string	str = ":ft_irc 001 ";
 		str += client.getNickname();
 		str += " :Welcome to ";
 		str += server.getName();
@@ -53,7 +53,7 @@ namespace Reply
 
 	std::string	RPL_YOURHOST(const Server& server)
 	{
-		std::string	str =  "002 :Your host is ";
+		std::string	str =  ":ft_irc  002 :Your host is ";
 		str += server.getName();
 		str += ", running version ";
 		str += server.getVersion();
@@ -62,7 +62,7 @@ namespace Reply
 
 	std::string	RPL_CREATED(const Server& server)
 	{
-		std::string	str = "003 :This server was created ";
+		std::string	str = ":ft_irc 003 :This server was created ";
 		str += server.getStTime();
 
 		return str;
@@ -197,22 +197,21 @@ namespace Reply
 	}
 
 	std::string RPL_LISTSTART(const Client& client) {
-    return ":localhost 321 " + client.getNickname() + " Channel :Users Name";
+    return ":ft_irc 321 " + client.getNickname() + " Channel :Users Name";
 	}
 
 	std::string RPL_LIST(const Client& client, const Channel& ch) {
-		std::string str = ":localhost 322 ";
+		std::string str = ":ft_irc 322 ";
 		str += client.getNickname() + " ";
 		str += ch.getName() + " ";
 		std::ostringstream oss;
 		oss << ch.getMemberCount();
 		str += oss.str() + " ";
 		str += ":" + ch.getTopic();
-		std::cout << str << std::endl;	
     	return str;
 	}
 
 	std::string RPL_LISTEND(const Client& client) {
-		return ":localhost 323 " + client.getNickname() + " :End of /LIST";
+		return ":ft_irc 323 " + client.getNickname() + " :End of /LIST";
 	}
 }

@@ -89,6 +89,8 @@ class Server
 		int			handleUser(Client *, std::vector<std::string>);
 		void		handleWho(Client *, std::vector<std::string>);
 		void		handleQuit(Client *, std::vector<std::string>);
+		void    	handleList(Client *client, std::vector<std::string> args);
+		void    	handlePing(Client *client, std::vector<std::string> args);
 	};
 extern Server*	instance;
 

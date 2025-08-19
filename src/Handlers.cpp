@@ -588,3 +588,20 @@ void	Server::handleQuit(Client *client, std::vector<std::string> args){
 	int index = findFdIndex(client->getFd());
 	removeClient(client, index);
 }
+
+void    Server::handleList(Client *client, std::vector<std::string> args){
+	sendMessage(client->getFd(), Reply::RPL_LISTSTART(*client));
+	sendChannelListToClient(client);
+	static_cast<void>(args);
+}
+
+void    Server::handlePing(Client *client, std::vector<std::string> args){
+	if (args.size() < 2)
+	{
+		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, client->_input));
+		return;
+	}
+	return ;
+	std::string pong = "PONG " + args[1];
+	sendMessage(client->getFd(), pong);
+}

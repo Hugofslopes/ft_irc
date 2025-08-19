@@ -221,7 +221,8 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 	std::string cmd = args[0];
 	const std::string	commands[] = {
 		"INVITE", "JOIN", "KICK", "MODE", "PART",
-		"PRIVMSG", "TOPIC", "WHO", "QUIT", "privmsg"
+		"PRIVMSG", "TOPIC", "WHO", "QUIT", "privmsg",
+		"LIST", "PING"
 	};
 
 	void	(Server::*handlers[])(Client *client, std::vector<std::string> args) = {
@@ -235,6 +236,8 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 	&Server::handleWho,
 	&Server::handleQuit,
 	&Server::handlePrivmsg,
+	&Server::handleList,
+	&Server::handlePing,
 	};
 
 	const int	commandCount = sizeof(commands) / sizeof(commands[0]);
@@ -278,6 +281,10 @@ void Server::joinGreetings(Client *client)
 	sendMessage(client->getFd(), Reply::RPL_YOURHOST(*this));
 	sendMessage(client->getFd(), Reply::RPL_CREATED(*this));
 	sendMessage(client->getFd(), Reply::RPL_MYINFO(*client, *this));
+
+	std::string motd = ":ft_irc 376 eu :End of /MOTD command.";
+	sendMessage(client->getFd(),motd);
+
 	sendMessage(client->getFd(), Reply::RPL_LISTSTART(*client));
 	sendChannelListToClient(client);
 }
