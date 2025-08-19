@@ -195,4 +195,24 @@ namespace Reply
 
     	return msg;
 	}
+
+	std::string RPL_LISTSTART(const Client& client) {
+    return ":localhost 321 " + client.getNickname() + " Channel :Users Name";
+	}
+
+	std::string RPL_LIST(const Client& client, const Channel& ch) {
+		std::string str = ":localhost 322 ";
+		str += client.getNickname() + " ";
+		str += ch.getName() + " ";
+		std::ostringstream oss;
+		oss << ch.getMemberCount();
+		str += oss.str() + " ";
+		str += ":" + ch.getTopic();
+		std::cout << str << std::endl;	
+    	return str;
+	}
+
+	std::string RPL_LISTEND(const Client& client) {
+		return ":localhost 323 " + client.getNickname() + " :End of /LIST";
+	}
 }

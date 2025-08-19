@@ -72,6 +72,7 @@ class Server
 		void		removeClient(Client *, int);
 		void		clientRequest(int);
 		void		executeCommand(Client *, std::vector<std::string>);
+		void		sendChannelListToClient(const Client*);
 		
 		void		processRegister(Client *, std::string, int);
 		void		processRegister2(Client *, std::vector<std::string>, int);

@@ -216,10 +216,12 @@ void	Server::clientRequest(int index)
 
 void	Server::executeCommand(Client *client, std::vector<std::string> args)
 {
+	if (args.empty())
+		return ;
 	std::string cmd = args[0];
 	const std::string	commands[] = {
 		"INVITE", "JOIN", "KICK", "MODE", "PART",
-		"PRIVMSG", "TOPIC", "WHO", "QUIT"
+		"PRIVMSG", "TOPIC", "WHO", "QUIT", "privmsg"
 	};
 
 	void	(Server::*handlers[])(Client *client, std::vector<std::string> args) = {
@@ -231,7 +233,8 @@ void	Server::executeCommand(Client *client, std::vector<std::string> args)
 	&Server::handlePrivmsg,
 	&Server::handleTopic,
 	&Server::handleWho,
-	&Server::handleQuit
+	&Server::handleQuit,
+	&Server::handlePrivmsg,
 	};
 
 	const int	commandCount = sizeof(commands) / sizeof(commands[0]);
@@ -275,6 +278,17 @@ void Server::joinGreetings(Client *client)
 	sendMessage(client->getFd(), Reply::RPL_YOURHOST(*this));
 	sendMessage(client->getFd(), Reply::RPL_CREATED(*this));
 	sendMessage(client->getFd(), Reply::RPL_MYINFO(*client, *this));
+	sendMessage(client->getFd(), Reply::RPL_LISTSTART(*client));
+	sendChannelListToClient(client);
+}
+
+void Server::sendChannelListToClient(const Client* client) {
+    for (std::map<std::string, Channel>::const_iterator it = _channels.begin(); it != _channels.end(); ++it) {
+    	const Channel& channel = it->second;
+        std::string reply = Reply::RPL_LIST(*client, channel);
+        sendMessage(client->getFd(), reply);
+    }
+    sendMessage(client->getFd(), Reply::RPL_LISTEND(*client));
 }
 
 void	Server::setDateTime()

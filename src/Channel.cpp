@@ -193,3 +193,7 @@ void	Channel::setTopic(const std::string& topic)
 {
 	_topic = topic;
 }
+
+ size_t Channel::getMemberCount() const {
+        return _members.size();
+ }

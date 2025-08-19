@@ -75,8 +75,7 @@ void Server::processInitialCommands(Client *client, std::vector<std::string> arg
 			return;
 		}
 	}
-	else if (!client->isRegistered() && args[0] != "USER" && args[0] != "NICK"
-	&& args[0] != "PASS"){
+	else{
 		removeFromReg(client);
 		return ;
 	}

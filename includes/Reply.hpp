@@ -23,5 +23,9 @@ namespace Reply{
     std::string RPL_PART(const Client&, const Channel&);
     std::string RPL_QUIT(const Client&, const std::string&);
     std::string RPL_MODE(const Server& sv, const Client& cl, const Channel& ch);
+    std::string RPL_LISTSTART(const Client& client);
+    std::string RPL_LIST(const Client& client, const Channel& ch);
+    std::string RPL_LISTEND(const Client& client);
+    
 }
 #endif

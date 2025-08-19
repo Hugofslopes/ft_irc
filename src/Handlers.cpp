@@ -74,7 +74,8 @@ void	Server::handleJoin(Client *client, std::vector<std::string> args)
 	}
 	else
 	{
-		if (channel->getUserLimit() > 0 && static_cast<int>(channel->getMembers().size()) >= channel->getUserLimit())
+		if ((channel->getUserLimit() > 0 && static_cast<int>(channel->getMembers().size()) >= channel->getUserLimit())
+		|| channel->getUserLimit() == -1)
 		{
 			sendMessage(client->getFd(), Errors::ERR_CHANNELISFULL(*client, *channel));
 			return ;
@@ -232,6 +233,8 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 			param = "";
 		if (mode == 'i' && adding == true)
 			channel->setInvite(adding);
+		else if (mode == 'i' && adding == false)
+			channel->setInvite(adding);
 		else if (mode == 't')
 			channel->setTopicRestricted(adding);
 		else if (mode == 'k')
@@ -273,6 +276,8 @@ void	Server::handleMode(Client *client, std::vector<std::string> args)
 				int	usrLimit = atoi(param.c_str());
 				if (usrLimit > 0)
 					channel->setUserLimit(usrLimit);
+				else
+					channel->setUserLimit(-1);
 			}
 			else if (!adding)
 				channel->setUserLimit(0);
@@ -349,7 +354,7 @@ int   Server::handleNick(Client *client, std::vector<std::string> args)
 
 void    Server::handlePart(Client *client, std::vector<std::string> args)
 {
-	if (args.empty())
+	if (args.size() < 2)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client,  client->_input));
 		return ;
@@ -513,7 +518,7 @@ void    Server::handlePrivmsg(Client *client, std::vector<std::string> args)
 
 int    Server::handleUser(Client *client, std::vector<std::string> args)
 {
-	if (args.size() < 4)
+	if (args.size() < 2)
 	{
 		sendMessage(client->getFd(), Errors::ERR_NEEDMOREPARAMS(*client, client->_input));
 		return 1;

@@ -37,6 +37,7 @@ public:
 	bool		getInvite() const;
 	bool		getTopicRestricted() const;
 	int			getUserLimit() const;
+	size_t 		getMemberCount() const;
 
 	const std::vector<std::string>&	getMembers() const;
 	const std::vector<std::string>&	getOperators() const;
